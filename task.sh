@@ -1,0 +1,14 @@
+python MyTask.py \
+--pre_train_model_path './pre_trained_model/Cora.MultiGprompt.pth' \
+--task NodeTask \
+--dataset_name 'Cora' \
+--preprocess_method 'none' \
+--gnn_type 'GCN' \
+--prompt_type 'MultiGprompt' \
+--shot_num 5 \
+--run_split 1 \
+--hid_dim 256 \
+--num_layer 2 \
+--epochs 100 \
+--seed 1 \
+--device 0
