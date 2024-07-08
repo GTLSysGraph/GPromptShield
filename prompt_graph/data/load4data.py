@@ -140,7 +140,8 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
     test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
     val_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
     
-    index_path = './data_attack/{}/{}/index/shot_{}/{}'.format(dataname, attack_method,str(shot_num), str(run_split))
+    # 这个是随机的取shot方法，这里可以优化一下，因为不同的shot对结果的影响很大，尤其是数据集被攻击的情况下
+    index_path = './data_attack/{}/{}/index/shot_{}/{}'.format(dataname, attack_method, str(shot_num), str(run_split))
 
     if os.path.exists(index_path):
         train_indices  = torch.load(index_path + '/train_idx.pt').type(torch.long)
@@ -155,9 +156,11 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
         train_mask[train_indices]  =  True
         val_mask[val_indices]      =  True
         test_mask[test_indices]    =  True
-        # print(train_indices)
-        # print(train_lbls)
-        # quit()
+
+        print(attack_method)
+        print(train_indices)
+        print(train_lbls)
+        quit()
     # 如果不存在文件夹，则创建shot num索引文件夹 并保存train val test的索引
     else:
         os.makedirs(index_path, exist_ok=True)
@@ -166,7 +169,7 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
         whole_val_idx   = []
         whole_test_idx  = []
         labels = data.y
-
+        # 注意！ seed一样的情况下，不管什么run_split都是一样的！要获得不同的run_split要同时改变seed！
         for label in data.y.unique():
                 label_indices = (data.y == label).nonzero(as_tuple=False).view(-1)
 
@@ -300,6 +303,7 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
         train_mask[train_indices]  =  True
         val_mask[val_indices]      =  True
         test_mask[test_indices]    =  True
+
         # print(train_indices)
         # print(train_lbls)
         # quit()
@@ -311,7 +315,7 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
         whole_val_idx   = []
         whole_test_idx  = []
         labels = data.y
-
+        # 注意！ seed一样的情况下，不管什么run_split都是一样的！要获得不同的run_split要同时改变seed！
         for label in data.y.unique():
                 label_indices = (data.y == label).nonzero(as_tuple=False).view(-1)
 
