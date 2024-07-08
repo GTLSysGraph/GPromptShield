@@ -16,7 +16,7 @@ if args.task == 'NodeTask':
     for split_num in args.run_split:
         tasker = NodeTask(pre_train_model_path = args.pre_train_model_path, hid_dim=args.hid_dim,
                         dataset_name = args.dataset_name, num_layer = args.num_layer, gnn_type = args.gnn_type, 
-                        prompt_type = args.prompt_type, epochs = args.epochs, shot_num = args.shot_num, run_split= split_num, preprocess_method = args.preprocess_method)
+                        prompt_type = args.prompt_type, epochs = args.epochs, shot_num = args.shot_num, run_split= split_num, preprocess_method = args.preprocess_method, attack_downstream = args.attack_downstream, attack_method = args.attack_method)
         
         test_acc = tasker.run()
 

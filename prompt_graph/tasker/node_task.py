@@ -6,7 +6,7 @@ from prompt_graph.utils import process
 from .task import BaseTask
 import time
 import warnings
-from prompt_graph.data import induced_graphs, split_induced_graphs,load4node_shot_index
+from prompt_graph.data import induced_graphs, split_induced_graphs,load4node_shot_index,load4node_attack_shot_index
 from prompt_graph.evaluation import AllInOneEva
 import pickle
 import os
@@ -14,13 +14,22 @@ import numpy as np
 import scipy.sparse as sp
 from torch_geometric.utils import to_scipy_sparse_matrix
 
+
 warnings.filterwarnings("ignore")
 
 class NodeTask(BaseTask):
       def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.task_type = 'NodeTask'
-            self.load_data()
+
+            if self.attack_downstream:
+                  assert self.attack_method != 'None', 'No specific attacks were designated.'
+                  print('load LLC or attacked data')
+                  self.load_attack_data()
+            else:
+                  print('load raw data')
+                  self.load_data()
+            
             self.initialize_gnn()
             self.initialize_prompt()
             self.answering =  torch.nn.Sequential(torch.nn.Linear(self.hid_dim, self.output_dim), torch.nn.Softmax(dim=1)).to(self.device)
@@ -50,9 +59,41 @@ class NodeTask(BaseTask):
             print("feature",features.shape)
 
 
+      def load_attack_data(self):
+            self.data, self.dataset = load4node_attack_shot_index(self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+
+            if self.prompt_type == 'MultiGprompt':
+                  self.process_multigprompt_data(self.data)
+            else:
+                  self.input_dim = self.data.x.shape[1]
+                  self.output_dim = self.dataset.num_classes
+
+            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus']:
+                  file_dir = './data_attack/{}/{}/induced_graph/shot_{}/{}'.format(self.dataset_name, self.attack_method, str(self.shot_num), str(self.run_split))
+                  file_path = os.path.join(file_dir, 'induced_graph.pkl')
+
+                  # 注意，换shot num的时候要把induced graph删掉
+                  if os.path.exists(file_path):
+                        with open(file_path, 'rb') as f:
+                              graphs_dict = pickle.load(f)
+                        self.train_dataset = graphs_dict['train_graphs']
+                        self.test_dataset = graphs_dict['test_graphs']
+                        self.val_dataset = graphs_dict['val_graphs']
+                  else:
+                        os.makedirs(file_dir, exist_ok=True) 
+                        print('Begin split_induced_graphs.')
+                        split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
+                        with open(file_path, 'rb') as f:
+                              graphs_dict = pickle.load(f)
+                        self.train_dataset = graphs_dict['train_graphs']
+                        self.test_dataset = graphs_dict['test_graphs']
+                        self.val_dataset = graphs_dict['val_graphs']
+            else:
+                  self.data.to(self.device)
+
+
 
       def load_data(self):
-
             self.data, self.dataset = load4node_shot_index(self.dataset_name, preprocess_method = self.preprocess_method, shot_num = self.shot_num, run_split= self.run_split)
 
             if self.prompt_type == 'MultiGprompt':
@@ -100,8 +141,8 @@ class NodeTask(BaseTask):
       def AllInOneTrain(self, train_loader):
             #we update answering and prompt alternately.
             
-            answer_epoch = 80  # 50
-            prompt_epoch = 80  # 50
+            answer_epoch = 20  # 50 80
+            prompt_epoch = 20  # 50 80
             
             # tune task head
             self.answering.train()

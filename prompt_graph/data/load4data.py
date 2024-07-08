@@ -5,6 +5,7 @@ import numpy as np
 from random import shuffle
 import random
 from torch_geometric.datasets import Planetoid, Amazon, Reddit, WikiCS, Flickr, WebKB, Actor
+import torch_geometric.transforms as T
 from torch_geometric.datasets import TUDataset
 from torch_geometric.transforms import NormalizeFeatures
 from torch_geometric.utils import to_undirected
@@ -16,6 +17,9 @@ from torch_geometric.transforms import SVDFeatureReduction
 from torch_geometric.data import Data,Batch
 from ogb.graphproppred import PygGraphPropPredDataset
 
+
+from data_pyg.data_pyg import get_dataset
+import os.path as osp
 
 # used in pre_train.py
 def load_data4pretrain(dataname='CiteSeer', num_parts=200):
@@ -95,6 +99,143 @@ def load4graph(dataset_name, shot_num= 10, num_parts=None):
 
         return input_dim, out_dim, graph_list
         # return input_dim, out_dim, None, None, None, graph_list
+
+
+
+def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split = 1):
+    assert dataname in ['Cora', 'CiteSeer', 'PubMed', 'ogbn-arxiv'], 'Currently, attacks are only supported for the specified datasets.'
+    atk_type   = attack_method.split('-')[0]
+    atk_ptb    = attack_method.split('-')[1]
+    path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+    dataset    = get_dataset(path, 'Attack-' + dataname, atk_type, atk_ptb)
+    print()
+    print(f'Attack method : {atk_type} | Attack ptb : {atk_ptb} | Dataset: {dataname}')
+    print('======================')
+    print(f'Number of graphs: {len(dataset)}')
+    print(f'Number of features: {dataset.num_features}')
+    print(f'Number of classes: {dataset.num_classes}')
+
+    data = dataset[0]  # Get the first graph object.
+
+    print()
+    print(data)
+    print('===========================================================================================================')
+
+    # Gather some statistics about the graph.
+    print(f'Number of nodes: {data.num_nodes}')
+    print(f'Number of edges: {data.num_edges}')
+    print(f'Average node degree: {data.num_edges / data.num_nodes:.2f}')
+    print(f'Has isolated nodes: {data.has_isolated_nodes()}')
+    print(f'Has self-loops: {data.has_self_loops()}')
+    print(f'Is undirected: {data.is_undirected()}')
+    
+    # 根据 shot_num 更新训练掩码
+    class_counts = {}  # 统计每个类别的节点数
+    for label in data.y:
+        label = label.item()
+        class_counts[label] = class_counts.get(label, 0) + 1
+
+    # 构建 mask
+    train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+    test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+    val_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+    
+    index_path = './data_attack/{}/{}/index/shot_{}/{}'.format(dataname, attack_method,str(shot_num), str(run_split))
+
+    if os.path.exists(index_path):
+        train_indices  = torch.load(index_path + '/train_idx.pt').type(torch.long)
+        train_lbls     = torch.load(index_path + '/train_labels.pt').type(torch.long).squeeze()
+
+        val_indices    = torch.load(index_path + '/val_idx.pt').type(torch.long)
+        val_lbs        = torch.load(index_path + '/val_labels.pt').type(torch.long).squeeze()
+
+        test_indices   = torch.load(index_path + '/test_idx.pt').type(torch.long)
+        test_lbls      = torch.load(index_path + '/test_labels.pt').type(torch.long).squeeze()
+
+        train_mask[train_indices]  =  True
+        val_mask[val_indices]      =  True
+        test_mask[test_indices]    =  True
+        # print(train_indices)
+        # print(train_lbls)
+        # quit()
+    # 如果不存在文件夹，则创建shot num索引文件夹 并保存train val test的索引
+    else:
+        os.makedirs(index_path, exist_ok=True)
+        # 存放对应shot num的train val test索引
+        whole_train_idx = []
+        whole_val_idx   = []
+        whole_test_idx  = []
+        labels = data.y
+
+        for label in data.y.unique():
+                label_indices = (data.y == label).nonzero(as_tuple=False).view(-1)
+
+                # if len(label_indices) < 3 * shot_num:
+                #     raise ValueError(f"类别 {label.item()} 的样本数不足以分配到训练集、测试集和验证集。")
+
+                label_indices = label_indices[torch.randperm(len(label_indices))]
+                train_indices = label_indices[:shot_num]
+                train_mask[train_indices] = True
+
+                remaining_indices = label_indices[shot_num:]
+                split_point = int(len(remaining_indices) * 0.1)  # 验证集占剩余的10%
+                
+                val_indices = remaining_indices[:split_point]
+                test_indices = remaining_indices[split_point:]
+
+                val_mask[val_indices] = True
+                test_mask[test_indices] = True
+
+                whole_train_idx.extend(train_indices.numpy())
+                whole_val_idx.extend(val_indices.numpy())
+                whole_test_idx.extend(test_indices.numpy())
+
+        whole_train_idx  = torch.tensor(whole_train_idx)
+        whole_val_idx    = torch.tensor(whole_val_idx)
+        whole_test_idx   = torch.tensor(whole_test_idx)
+
+        # shuffled_train_indices = torch.randperm(whole_train_idx.size(0))
+        # whole_train_idx = whole_train_idx[shuffled_train_indices]
+        whole_train_labels = labels[whole_train_idx]
+
+        # shuffled_val_indices = torch.randperm(whole_val_idx.size(0))
+        # whole_val_idx = whole_val_idx[shuffled_val_indices]
+        whole_val_labels = labels[whole_val_idx]
+
+        # shuffled_test_indices = torch.randperm(whole_test_idx.size(0))
+        # whole_test_idx = whole_test_idx[shuffled_test_indices]
+        whole_test_labels = labels[whole_test_idx]
+
+        # 保存文件
+        torch.save(whole_train_idx, os.path.join(index_path, 'train_idx.pt'))
+        torch.save(whole_train_labels, os.path.join(index_path, 'train_labels.pt'))
+
+        torch.save(whole_val_idx, os.path.join(index_path, 'val_idx.pt'))
+        torch.save(whole_val_labels, os.path.join(index_path, 'val_labels.pt'))
+
+        torch.save(whole_test_idx, os.path.join(index_path, 'test_idx.pt'))
+        torch.save(whole_test_labels, os.path.join(index_path, 'test_labels.pt'))
+
+
+    data.train_mask = train_mask
+    data.test_mask = test_mask
+    data.val_mask = val_mask
+
+
+    print(f'len train nodes: {sum(data.train_mask)}')
+    print(f'len val   nodes: {sum(data.val_mask)}')
+    print(f'len test  nodes: {sum(data.test_mask)}')
+
+    return data, dataset
+
+
+
+
+
+
+
+
+
 
 
 def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 1):
@@ -406,7 +547,16 @@ def load4link_prediction_multi_graph(dataset_name, num_per_samples=1):
 def load4node_demo2(dataname):
     print(dataname)
     if dataname in ['PubMed', 'CiteSeer', 'Cora']:
-        dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures())
+        # use raw datasets
+        # print('Now use raw datasets for pretrain !')
+        # dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures()) 
+        
+        # use the largest connected component
+        print('Now use LLC datasets for pretrain !')
+        path    = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+        dataset = get_dataset(path, 'Attack-' + dataname, 'Meta_Self', 0.0) # 0.0的扰动率即代表最大联通分量 
+        # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
+
         data = dataset[0]
         input_dim = dataset.num_features
         out_dim = dataset.num_classes

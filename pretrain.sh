@@ -1,5 +1,5 @@
 python MyPretrain.py \
---task NodeMultiGprompt \
+--task GraphCL \
 --dataset_name 'Cora' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \

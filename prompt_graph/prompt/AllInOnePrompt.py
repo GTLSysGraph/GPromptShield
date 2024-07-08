@@ -78,8 +78,8 @@ class HeavyPrompt(LightPrompt):
 
         re_graph_list = []
         for g in Batch.to_data_list(graph_batch):
-            g_edge_index = g.edge_index + token_num
-            
+            g_edge_index = g.edge_index + token_num # 相当于每一个节点的编号+token_num,把前面的编号留给pg图
+
             cross_dot = torch.mm(pg.x, torch.transpose(g.x, 0, 1))
             cross_sim = torch.sigmoid(cross_dot)  # 0-1 from prompt to input graph
             cross_adj = torch.where(cross_sim < self.cross_prune, 0, cross_sim)
@@ -101,12 +101,15 @@ class HeavyPrompt(LightPrompt):
     def Tune(self, train_loader, gnn, answering, lossfn, opi, device):
         running_loss = 0.
         for batch_id, train_batch in enumerate(train_loader):  
-            # print(train_batch)
             train_batch = train_batch.to(device)
             prompted_graph = self.forward(train_batch)
+            # print(len(prompted_graph))  35
             # print(prompted_graph)
-
+            
             graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch)
+            # print(graph_emb.shape)
+            # print(len(prompted_graph.batch))
+
             pre = answering(graph_emb)
             train_loss = lossfn(pre, train_batch.y)
 

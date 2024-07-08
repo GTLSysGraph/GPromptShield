@@ -1,14 +1,16 @@
 python MyTask.py \
---pre_train_model_path './pre_trained_model/Cora.MultiGprompt.pth' \
+--pre_train_model_path './pre_trained_model/Cora.GraphCL.GCN.256hidden_dim.pth' \
 --task NodeTask \
 --dataset_name 'Cora' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
---prompt_type 'MultiGprompt' \
---shot_num 5 \
+--prompt_type 'All-in-one' \
+--shot_num 1 \
 --run_split 1 \
 --hid_dim 256 \
 --num_layer 2 \
---epochs 100 \
+--epochs 10 \
 --seed 1 \
---device 0
+--device 0 \
+--attack_downstream \
+--attack_method 'Meta_Self-0.0'

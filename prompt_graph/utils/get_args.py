@@ -40,8 +40,12 @@ def get_args():
     parser.add_argument('--num_workers', type=int, default = 0, help='Number of workers for dataset loading')
     parser.add_argument('--num_layers', type=int, default = 1, help='A range of [1,2,3]-layer MLPs with equal width')
     parser.add_argument('--pnum', type=int, default = 5, help='The number of independent basis for GPF-plus')
+
     # add ssh
-    parser.add_argument('--preprocess_method', type=str, default='none', help='Choose preprocess method svd')
+    parser.add_argument('--preprocess_method', type=str, default='None', help='Choose preprocess method svd')
+    parser.add_argument('--attack_downstream', action='store_true',      default=False, help='Attack Downstream Task')
+    # ArgumentParser在传布尔类型变量时，传入参数按字符串处理，所以无论传入什么值，参数值都为True。
+    parser.add_argument('--attack_method',     type=  str,               default=  'None') # ['DICE-0.1','Meta_Self-0.05' ,...] 攻击方式-扰动率
 
     args = parser.parse_args()
     return args
