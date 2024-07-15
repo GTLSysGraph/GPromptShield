@@ -109,7 +109,6 @@ class HeavyPrompt(LightPrompt):
             graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch)
             # print(graph_emb.shape)
             # print(len(prompted_graph.batch))
-
             pre = answering(graph_emb)
             train_loss = lossfn(pre, train_batch.y)
 
