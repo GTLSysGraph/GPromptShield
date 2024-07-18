@@ -9,3 +9,5 @@ from .prepare_structured_data import prepare_structured_data
 from .loss import Gprompt_tuning_loss, Gprompt_link_loss
 from .edge_index_to_sparse_matrix import edge_index_to_sparse_matrix
 from .center_embedding import center_embedding,distance2center
+# add by ssh
+from .cmd import cmd

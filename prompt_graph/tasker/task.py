@@ -1,6 +1,6 @@
 import torch
 from prompt_graph.model import GAT, GCN, GCov, GIN, GraphSAGE, GraphTransformer
-from prompt_graph.prompt import LightPrompt,HeavyPrompt,GPPTPrompt,Gprompt, GPF, GPF_plus
+from prompt_graph.prompt import RobustPrompt_T, RobustPrompt_Tplus, RobustPrompt_I, HeavyPrompt, GPPTPrompt,Gprompt, GPF, GPF_plus
 from torch import nn, optim
 from prompt_graph.data import load4graph
 from prompt_graph.prompt import featureprompt, downprompt
@@ -41,6 +41,22 @@ class BaseTask:
         elif self.prompt_type == 'All-in-one':
             self.pg_opi = optim.Adam(filter(lambda p: p.requires_grad, self.prompt.parameters()), lr=0.001, weight_decay= 0.00001)
             self.answer_opi = optim.Adam(filter(lambda p: p.requires_grad, self.answering.parameters()), lr=0.001, weight_decay= 0.00001)
+        
+        
+        
+        # add by ssh
+        elif self.prompt_type == 'RobustPrompt_I':
+            self.pg_opi = optim.Adam(filter(lambda p: p.requires_grad, self.prompt.parameters()), lr=0.001, weight_decay= 0.00001)
+            self.answer_opi = optim.Adam(filter(lambda p: p.requires_grad, self.answering.parameters()), lr=0.001, weight_decay= 0.00001)
+            print('consider add robust regularization and optimizing strategy')
+        elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
+            model_param_group = []
+            model_param_group.append({"params": self.prompt.parameters()})
+            model_param_group.append({"params": self.answering.parameters()})
+            self.optimizer = optim.Adam(model_param_group, lr=0.01, weight_decay=5e-4)
+
+
+
         elif self.prompt_type in ['GPF', 'GPF-plus']:
             model_param_group = []
             model_param_group.append({"params": self.prompt.parameters()})
@@ -106,10 +122,17 @@ class BaseTask:
             graphcledgeprompt = self.Preprompt.graphcledge.prompt
             lpprompt = self.Preprompt.lp.prompt
             self.DownPrompt = downprompt(dgiprompt, graphcledgeprompt, lpprompt, 0.0001, self.hid_dim, self.output_dim, self.device).to(self.device)
-            
             # for name, paramer in self.DownPrompt.named_parameters():
             #     print(name)
             # quit()
+
+        elif self.prompt_type == 'RobustPrompt_I':
+            print("start to realise RobustPrompt")
+            self.prompt = RobustPrompt_I(token_dim=self.input_dim, token_num=10, cross_prune=0.1, inner_prune=0.3).to(self.device)
+        elif self.prompt_type == 'RobustPrompt_T':
+            self.prompt = RobustPrompt_T(self.input_dim).to(self.device)
+        elif self.prompt_type == 'RobustPrompt_Tplus':
+            self.prompt = RobustPrompt_Tplus(self.input_dim, 20).to(self.device)
 
         else:
             raise KeyError(" We don't support this kind of prompt.")

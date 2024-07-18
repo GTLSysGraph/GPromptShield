@@ -31,7 +31,9 @@ class GPPTPrompt(torch.nn.Module):
         self.StructureToken=self.StructureToken.to(device)  # structure token
         self.TaskToken = torch.nn.ModuleList()
         for i in range(center_num):
-            self.TaskToken.append(torch.nn.Linear(2 * n_hidden, n_classes, bias=False))  #task token
+            self.TaskToken.append(torch.nn.Linear(2 * n_hidden, n_classes, bias=False))  
+            # 这里初始化是2倍的n_hidden，但是在下面用均值后的值初始化变成了单倍的n_hidden
+            #task token
         self.TaskToken = self.TaskToken.to(device)
 
     def weigth_init(self, h, edge_index, label, index):
@@ -54,6 +56,7 @@ class GPPTPrompt(torch.nn.Module):
             p.append(features[labels==i].mean(dim=0).view(1,-1))
         temp=torch.cat(p,dim=0).to(self.device)
         for i in range(self.center_num):
+            # 这里本来是2倍的n_hidden,用均值后的值初始化变成了单倍的n_hidden
             self.TaskToken[i].weight.data = temp.clone().detach()
         
     

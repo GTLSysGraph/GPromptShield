@@ -160,7 +160,7 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
         print(attack_method)
         print(train_indices)
         print(train_lbls)
-        quit()
+        # quit()
     # 如果不存在文件夹，则创建shot num索引文件夹 并保存train val test的索引
     else:
         os.makedirs(index_path, exist_ok=True)

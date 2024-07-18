@@ -81,7 +81,11 @@ class GCN(torch.nn.Module):
             if prompt_type == 'Gprompt':
                 node_emb = prompt(node_emb)
             graph_emb = self.pool(node_emb, batch.long())
-            return graph_emb
+
+            if prompt_type in ['RobustPrompt']:
+                return node_emb, graph_emb
+            else:
+                return graph_emb
 
 
     def decode(self, z, edge_label_index):

@@ -1,13 +1,13 @@
 import torch
 from torch_geometric.loader import DataLoader
-from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss
-from prompt_graph.evaluation import GPPTEva, GNNNodeEva, GpromptEva, MultiGpromptEva, GPFEva
-from prompt_graph.utils import process
+from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process
+from prompt_graph.evaluation import GPPTEva, GNNNodeEva, GpromptEva, MultiGpromptEva, GPFEva, AllInOneEva, RobustPromptInductiveEva, RobustPromptTranductiveEva
+from prompt_graph.data import induced_graphs, split_induced_graphs,load4node_shot_index,load4node_attack_shot_index
+
 from .task import BaseTask
 import time
 import warnings
-from prompt_graph.data import induced_graphs, split_induced_graphs,load4node_shot_index,load4node_attack_shot_index
-from prompt_graph.evaluation import AllInOneEva
+
 import pickle
 import os
 import numpy as np
@@ -29,7 +29,7 @@ class NodeTask(BaseTask):
             else:
                   print('load raw data')
                   self.load_data()
-            
+
             self.initialize_gnn()
             self.initialize_prompt()
             self.answering =  torch.nn.Sequential(torch.nn.Linear(self.hid_dim, self.output_dim), torch.nn.Softmax(dim=1)).to(self.device)
@@ -68,7 +68,7 @@ class NodeTask(BaseTask):
                   self.input_dim = self.data.x.shape[1]
                   self.output_dim = self.dataset.num_classes
 
-            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus']:
+            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
                   file_dir = './data_attack/{}/{}/induced_graph/shot_{}/{}'.format(self.dataset_name, self.attack_method, str(self.shot_num), str(self.run_split))
                   file_path = os.path.join(file_dir, 'induced_graph.pkl')
 
@@ -88,6 +88,12 @@ class NodeTask(BaseTask):
                         self.train_dataset = graphs_dict['train_graphs']
                         self.test_dataset = graphs_dict['test_graphs']
                         self.val_dataset = graphs_dict['val_graphs']
+                  
+                  # add by ssh 把除了训练集induced graph之外的图作为一个remaining dataset,为了讨论分布的一致问题
+                  if self.prompt_type == 'RobustPrompt_I':
+                        print("Combine the val and the test dataset to study the distribution shift problem! ")
+                        self.remaining_dataset = self.val_dataset + self.test_dataset
+
             else:
                   self.data.to(self.device)
 
@@ -241,18 +247,55 @@ class NodeTask(BaseTask):
 
 
 
+      def RobustPromptInductiveTrain(self, train_loader, remaining_loader):
+            #we update answering and prompt alternately.
+            answer_epoch = 20  # 50 80
+            prompt_epoch = 20  # 50 80
+            
+            # tune task head
+            self.answering.train()
+            self.prompt.eval()
+            for epoch in range(1, answer_epoch + 1):
+                  answer_loss = self.prompt.Tune(train_loader, remaining_loader, self.gnn,  self.answering, self.criterion, self.answer_opi, self.device)
+                  print(("frozen gnn | frozen prompt | *tune answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, answer_loss)))
+
+            # tune prompt
+            self.answering.eval()
+            self.prompt.train()
+            for epoch in range(1, prompt_epoch + 1):
+                  pg_loss = self.prompt.Tune( train_loader, remaining_loader, self.gnn, self.answering, self.criterion, self.pg_opi, self.device)
+                  print(("frozen gnn | *tune prompt |frozen answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, pg_loss)))
+            
+            return pg_loss
 
 
+
+      def RobustPromptTranductivetrain(self, data):
+            self.prompt.train()
+            self.optimizer.zero_grad() 
+            # 这里要注意，和GPF不同，这里都是一个图而不是loader，所以一个epoch跑完后data.x就消失了，不能进行后向传播，要用一个新的值存储, 不能用data.x = self.prompt.add(data.x)，直接被覆盖，无法训练
+            prompted_x = self.prompt.add(data.x)
+            out = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
+            out = self.answering(out)
+            loss = self.criterion(out[data.train_mask], data.y[data.train_mask])
+            loss.backward()  
+            self.optimizer.step()
+            return loss
 
 
 
 
       def run(self):
             # for all-in-one and Gprompt we use k-hop subgraph
-            if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus']:
+            if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
                   train_loader = DataLoader(self.train_dataset, batch_size=100, shuffle=True)
                   test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
                   val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
+
+                  if self.prompt_type == 'RobustPrompt_I':
+                        print("Build a remaining dataloader.")
+                        remaining_loader = DataLoader(self.remaining_dataset, batch_size=2500, shuffle=True)
+                  
                   print("prepare induce graph data is finished!")
 
             if self.prompt_type == 'MultiGprompt':
@@ -286,10 +329,12 @@ class NodeTask(BaseTask):
                   elif self.prompt_type == 'All-in-one':
                         print("run All-in-one Prompt")
                         loss = self.AllInOneTrain(train_loader)
+                        # 看下训练集的训练情况，是不是在被攻击数据上过拟合了 不用的话就注释掉
+                        train_acc, F1  = AllInOneEva(train_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                         print("train batch Done!")
-                        val_acc, F1  = AllInOneEva(val_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        val_acc, F1    = AllInOneEva(val_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                         print("val batch Done!")
-                        test_acc, F1 = AllInOneEva(test_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        test_acc, F1   = AllInOneEva(test_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                         print("test batch Done!")
                   
                   elif self.prompt_type == 'GPPT':
@@ -323,8 +368,6 @@ class NodeTask(BaseTask):
                         print("test batch Done!")
 
 
-
-
                   elif self.prompt_type == 'MultiGprompt':
                         print("run MultiGprompt")
                         loss = self.MultiGpromptTrain(pretrain_embs, train_lbls, idx_train)
@@ -342,10 +385,39 @@ class NodeTask(BaseTask):
 
 
 
+                  # 图形状的prompt
+                  elif self.prompt_type == 'RobustPrompt_I':
+                        print("run RobustPrompt_I")
+                        loss = self.RobustPromptInductiveTrain(train_loader, remaining_loader)
+                        # 看下训练集的训练情况，是不是在被攻击数据上过拟合了 不用的话就注释掉
+                        train_acc, F1  = RobustPromptInductiveEva(train_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        print("RobustPrompt_I train batch Done!")
+                        val_acc, F1    = RobustPromptInductiveEva(val_loader,   self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        print("RobustPrompt_I val batch Done!")
+                        test_acc, F1   = RobustPromptInductiveEva(test_loader,  self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        print("RobustPrompt_I test batch Done!")
+
+
+                  elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
+                        print("run RobustPrompt_T/RobustPrompt_TPlus Prompt")
+                        loss            = self.RobustPromptTranductivetrain(self.data)
+                        train_acc,  F1  = RobustPromptTranductiveEva(self.data, self.data.train_mask, self.gnn, self.prompt, self.answering, self.output_dim, self.device)
+                        print("Train Done!")
+                        val_acc,  F1    = RobustPromptTranductiveEva(self.data, self.data.val_mask,   self.gnn, self.prompt, self.answering, self.output_dim, self.device)
+                        print("Val Done!")
+                        test_acc, F1    = RobustPromptTranductiveEva(self.data, self.data.test_mask,  self.gnn, self.prompt, self.answering, self.output_dim, self.device)
+                        print("Test Done!")
+
+
+
+
                   if val_acc > best_val_acc:
                         best_val_acc = val_acc
                         final_test_acc = test_acc
-                  print("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, val_acc, test_acc)) 
+                  # print("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, val_acc, test_acc)) 
+                  # 看下训练集的训练情况，是不是在被攻击数据上过拟合了
+                  # 果然 Epoch 009 |  Time(s) 5.1142 | Loss 3.3146 | train Accuracy 0.7143 | val Accuracy 0.3429 | test Accuracy 0.3059
+                  print("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | train Accuracy {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, train_acc, val_acc, test_acc))       
 
             print(f'Final Test: {final_test_acc:.4f}')
             print("Node Task completed")
