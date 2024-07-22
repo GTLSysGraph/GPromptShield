@@ -17,7 +17,7 @@ from torch_geometric.transforms import SVDFeatureReduction
 from torch_geometric.data import Data,Batch
 from ogb.graphproppred import PygGraphPropPredDataset
 
-
+from data_attack_fewshot.attackdata_specified import AttackDataset_specified
 from data_pyg.data_pyg import get_dataset
 import os.path as osp
 
@@ -234,6 +234,124 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
 
 
 
+
+
+def load4node_attack_specified_shot_index(dataname, attack_method, shot_num= 10, run_split = 1):
+    assert dataname in ['Cora', 'CiteSeer', 'PubMed', 'ogbn-arxiv'], 'Currently, attacks are only supported for the specified datasets.'
+
+    atk_type   = attack_method.split('-')[0]
+    atk_ptb    = attack_method.split('-')[1]
+    index_path = './data_attack_fewshot/{}/shot_{}/{}/index'.format(dataname, str(shot_num), str(run_split))
+    # 首先判断在指定的shot和split下是否存在index
+
+    # 如果存在index，就表示能够根据指定的划分生成攻击后的数据
+    if os.path.exists(index_path):
+        path       = osp.expanduser('/home/songsh/MyPrompt/data_attack_fewshot/{}/shot_{}/{}/'.format(dataname, shot_num, run_split))
+        dataset    = AttackDataset_specified(root = path, name = 'Attack-' + dataname,  attackmethod = atk_type, ptb_rate=atk_ptb) # , transform=T.NormalizeFeatures()
+        data = dataset[0]
+        # 判断一下被攻击数据的划分方式是否和index_path当中存的划分一样，训练集即可
+        train_indices        = torch.load(index_path + '/train_idx.pt').type(torch.long)
+        attack_train_indices = data.train_mask.nonzero().squeeze()
+        # 对两个tensor进行排序
+        sorted_train_indices = torch.sort(train_indices).values
+        sorted_attack_train_indices = torch.sort(attack_train_indices).values
+        # 判断两个排序后的tensor是否相同
+        index_equal = torch.equal(sorted_train_indices, sorted_attack_train_indices)
+        if not index_equal:
+            raise Exception("The distribution of the attack does not match the specified distribution.")
+        else:
+            # 这里才是完成了的对指定划分进行了攻击数据的加载
+            #############################################
+            print("Successfully loaded the attack of dataname with few shot {}, split {}".format(str(shot_num), str(run_split)))
+            #############################################
+            print(f'Attack method : {atk_type} | Attack ptb : {atk_ptb} | Dataset: {dataname}')
+            print('======================')
+            print(f'Number of graphs: {len(dataset)}')
+            print(f'Number of features: {dataset.num_features}')
+            print(f'Number of classes: {dataset.num_classes}')
+            print()
+            print(data)
+            print('===========================================================================================================')
+            # Gather some statistics about the graph.
+            print(f'Number of nodes: {data.num_nodes}')
+            print(f'Number of edges: {data.num_edges}')
+            print(f'Average node degree: {data.num_edges / data.num_nodes:.2f}')
+            print(f'Has isolated nodes: {data.has_isolated_nodes()}')
+            print(f'Has self-loops: {data.has_self_loops()}')
+            print(f'Is undirected: {data.is_undirected()}')
+
+        return data, dataset
+
+    else:
+        print("Index for the specified shot and run split does not exist. Generating......")
+        path_default = osp.expanduser('/home/songsh/MyPrompt/data_attack_fewshot/{}/default/'.format(dataname))
+        dataset      = AttackDataset_specified(root = path_default, name = 'Attack-' + dataname,  attackmethod = atk_type, ptb_rate=0.0) # , transform=T.NormalizeFeatures()
+
+        data = dataset[0]  # Get the first graph object.
+        # 表示在指定的shot和split下不存在已经生成的索引，所以要根据默认的数据集自己生成并存放的index当中
+
+        # 创建shot num索引文件夹 并保存train val test的索引
+
+        os.makedirs(index_path, exist_ok=True)
+        # 存放对应shot num的train val test索引
+        whole_train_idx = []
+        whole_val_idx   = []
+        whole_test_idx  = []
+        labels = data.y
+        # 注意！ seed一样的情况下，不管什么run_split都是一样的！要获得不同的run_split要同时改变seed！
+        for label in data.y.unique():
+                label_indices = (data.y == label).nonzero(as_tuple=False).view(-1)
+
+                # if len(label_indices) < 3 * shot_num:
+                #     raise ValueError(f"类别 {label.item()} 的样本数不足以分配到训练集、测试集和验证集。")
+
+                label_indices = label_indices[torch.randperm(len(label_indices))]
+                train_indices = label_indices[:shot_num]
+
+                remaining_indices = label_indices[shot_num:]
+                split_point = int(len(remaining_indices) * 0.1)  # 验证集占剩余的10%
+                
+                val_indices = remaining_indices[:split_point]
+                test_indices = remaining_indices[split_point:]
+
+
+                whole_train_idx.extend(train_indices.numpy())
+                whole_val_idx.extend(val_indices.numpy())
+                whole_test_idx.extend(test_indices.numpy())
+
+        whole_train_idx  = torch.tensor(whole_train_idx)
+        whole_val_idx    = torch.tensor(whole_val_idx)
+        whole_test_idx   = torch.tensor(whole_test_idx)
+
+        # shuffled_train_indices = torch.randperm(whole_train_idx.size(0))
+        # whole_train_idx = whole_train_idx[shuffled_train_indices]
+        whole_train_labels = labels[whole_train_idx]
+
+        # shuffled_val_indices = torch.randperm(whole_val_idx.size(0))
+        # whole_val_idx = whole_val_idx[shuffled_val_indices]
+        whole_val_labels = labels[whole_val_idx]
+
+        # shuffled_test_indices = torch.randperm(whole_test_idx.size(0))
+        # whole_test_idx = whole_test_idx[shuffled_test_indices]
+        whole_test_labels = labels[whole_test_idx]
+
+        # 保存文件
+        torch.save(whole_train_idx, os.path.join(index_path, 'train_idx.pt'))
+        torch.save(whole_train_labels, os.path.join(index_path, 'train_labels.pt'))
+
+        torch.save(whole_val_idx, os.path.join(index_path, 'val_idx.pt'))
+        torch.save(whole_val_labels, os.path.join(index_path, 'val_labels.pt'))
+
+        torch.save(whole_test_idx, os.path.join(index_path, 'test_idx.pt'))
+        torch.save(whole_test_labels, os.path.join(index_path, 'test_labels.pt'))
+
+        print(f'len train nodes: {len(whole_train_idx)}')
+        print(f'len val   nodes: {len(whole_val_idx)}')
+        print(f'len test  nodes: {len(whole_test_idx)}')
+
+        print('train indices: {}'.format(whole_train_idx))
+
+        raise Exception("Generated the specified data split, but it still needs to be attacked.")
 
 
 

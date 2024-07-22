@@ -2,7 +2,8 @@ import os.path as osp
 from torch_geometric.datasets import Planetoid, CitationFull, WikiCS, Coauthor, Amazon,Flickr,Reddit,Yelp, PPI
 import torch_geometric.transforms as T
 from ogb.nodeproppred import PygNodePropPredDataset # 会卡住 pip uninstall setuptools 解决
-from data_pyg.Attack_data.attackdata import AttackDataset
+from data_pyg.Attack_data.attackdata           import AttackDataset
+
 # from data_pyg.Reddit_small.Reddit_small import Reddit_small
 
 def get_dataset(path, name, attackmethod= None, attackptb = None):

@@ -1,6 +1,4 @@
-/data
-/data_attack
+data*
 /pre_trained_model
-/data_pyg
 __pycache__
 test*

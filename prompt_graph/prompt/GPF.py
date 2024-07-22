@@ -2,7 +2,6 @@ import torch
 from torch_geometric.nn.inits import glorot
 import torch.nn.functional as F
 
-
 class GPF(torch.nn.Module):
     def __init__(self, in_channels: int):
         super(GPF, self).__init__()
@@ -13,7 +12,7 @@ class GPF(torch.nn.Module):
         glorot(self.global_emb)
 
     def add(self, x: torch.Tensor):
-        return x + self.global_emb
+        return x + self.global_emb    
 
 class GPF_plus(torch.nn.Module):
     def __init__(self, in_channels: int, p_num: int):

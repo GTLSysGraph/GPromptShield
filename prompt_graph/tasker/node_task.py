@@ -1,8 +1,11 @@
 import torch
+import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
-from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process
+from torch_geometric.data   import Data
+from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process, cmd
 from prompt_graph.evaluation import GPPTEva, GNNNodeEva, GpromptEva, MultiGpromptEva, GPFEva, AllInOneEva, RobustPromptInductiveEva, RobustPromptTranductiveEva
-from prompt_graph.data import induced_graphs, split_induced_graphs,load4node_shot_index,load4node_attack_shot_index
+from prompt_graph.data import induced_graphs, split_induced_graphs,load4node_shot_index, load4node_attack_shot_index, load4node_attack_specified_shot_index
+
 
 from .task import BaseTask
 import time
@@ -13,7 +16,7 @@ import os
 import numpy as np
 import scipy.sparse as sp
 from torch_geometric.utils import to_scipy_sparse_matrix
-
+from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 
@@ -24,8 +27,14 @@ class NodeTask(BaseTask):
 
             if self.attack_downstream:
                   assert self.attack_method != 'None', 'No specific attacks were designated.'
-                  print('load LLC or attacked data')
-                  self.load_attack_data()
+                  if self.specified:
+                        # 对指定的train/val/test划分方式进行攻击，因为一些方法对不同的划分会产生不同的分布
+                        print("load LLC or attacked data with specified split")
+                        self.load_specified_attack_data()
+                  else:
+                        # 对默认的train/val/test划分方式进行攻击
+                        print('load LLC or attacked data with default split')
+                        self.load_attack_data()
             else:
                   print('load raw data')
                   self.load_data()
@@ -59,9 +68,56 @@ class NodeTask(BaseTask):
             print("feature",features.shape)
 
 
-      def load_attack_data(self):
-            self.data, self.dataset = load4node_attack_shot_index(self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+      def load_specified_attack_data(self):
+            # 加载攻击指定数据划分后的图数据
+            self.data, self.dataset = load4node_attack_specified_shot_index(self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+            if self.prompt_type == 'MultiGprompt':
+                  self.process_multigprompt_data(self.data)
+            else:
+                  self.input_dim = self.data.x.shape[1]
+                  self.output_dim = self.dataset.num_classes
+            # print(self.data)
+            # print(self.data.train_mask.nonzero().squeeze())
+            # print("loaded specified attack data")
+            # quit()
+                  
+            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
+                  file_dir = './data_attack_fewshot/{}/shot_{}/{}/induced_graph/{}'.format(self.dataset_name, str(self.shot_num), str(self.run_split), self.attack_method)
+                  file_path = os.path.join(file_dir, 'induced_graph.pkl')
 
+                  # 注意，换shot num的时候要把induced graph删掉
+                  if os.path.exists(file_path):
+                        print('Begin load induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
+                        with open(file_path, 'rb') as f:
+                              graphs_dict = pickle.load(f)
+                        self.train_dataset = graphs_dict['train_graphs']
+                        self.test_dataset = graphs_dict['test_graphs']
+                        self.val_dataset = graphs_dict['val_graphs']
+                  else:
+                        os.makedirs(file_dir, exist_ok=True) 
+                        print('Begin split induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
+                        split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
+                        with open(file_path, 'rb') as f:
+                              graphs_dict = pickle.load(f)
+                        self.train_dataset = graphs_dict['train_graphs']
+                        self.test_dataset = graphs_dict['test_graphs']
+                        self.val_dataset = graphs_dict['val_graphs']
+                  
+                  # add by ssh 把除了训练集induced graph之外的图作为一个remaining dataset,为了讨论分布的一致问题
+                  if self.prompt_type == 'RobustPrompt_I':
+                        print("Combine the val and the test dataset to study the distribution shift problem! ")
+                        self.remaining_dataset = self.val_dataset + self.test_dataset
+
+            else:
+                  self.data.to(self.device)
+
+
+
+
+      def load_attack_data(self):
+            # 加载默认数据划分攻击后的图数据
+            self.data, self.dataset = load4node_attack_shot_index(self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+            
             if self.prompt_type == 'MultiGprompt':
                   self.process_multigprompt_data(self.data)
             else:
@@ -270,14 +326,22 @@ class NodeTask(BaseTask):
 
 
 
-      def RobustPromptTranductivetrain(self, data):
+      def RobustPromptTranductivetrain(self, data, iid_train, pruned_data, lambda_cmd, lambda_mse):
             self.prompt.train()
             self.optimizer.zero_grad() 
             # 这里要注意，和GPF不同，这里都是一个图而不是loader，所以一个epoch跑完后data.x就消失了，不能进行后向传播，要用一个新的值存储, 不能用data.x = self.prompt.add(data.x)，直接被覆盖，无法训练
+
             prompted_x = self.prompt.add(data.x)
-            out = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
+            out       = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
+
+            out_clean = self.gnn(pruned_data.x, pruned_data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
+            # sim 关注去噪
+            loss_mse = F.mse_loss(out[data.train_mask], out_clean[data.train_mask])
+            # cmd 关注分布
+            loss_cmd = cmd(out[data.train_mask], out[iid_train, :])
+
             out = self.answering(out)
-            loss = self.criterion(out[data.train_mask], data.y[data.train_mask])
+            loss = self.criterion(out[data.train_mask], data.y[data.train_mask]) + lambda_cmd * loss_cmd + lambda_mse * loss_mse
             loss.backward()  
             self.optimizer.step()
             return loss
@@ -314,9 +378,52 @@ class NodeTask(BaseTask):
                   test_embs     = embeds[0, idx_test].type(torch.long)
 
 
+            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus']:
+                  print("Prepare distribution nodes and prune the graph...")
+                  ###############################################################
+                  # 分布
+                  # 选取测试集的节点
+                  idx_train = self.data.train_mask.nonzero().squeeze()
+                  all_idx = set(range(self.data.num_nodes)) - set(idx_train)
+                  idx_test = torch.LongTensor(list(all_idx))
+                  # method 1 : random select
+                  # perm = torch.randperm(idx_test.shape[0])
+                  # iid_train = idx_test[perm[:idx_train.shape[0]]] 
+                  # method 2 : use all 
+                  iid_train = idx_test
+                  print("select distribution nodes done!")
+                  ###############################################################
+
+                  ###############################################################
+                  # 噪声
+                  # Prune edge index
+                  edge_index = self.data.edge_index
+                  cosine_sim = F.cosine_similarity(self.data.x[edge_index[0]], self.data.x[edge_index[1]])
+                  # Define threshold t
+                  threshold = 0.05
+                  # Identify edges to keep
+                  keep_edges = cosine_sim >= threshold
+                  # Filter edge_index to only keep edges above the threshold
+                  pruned_edge_index = edge_index[:, keep_edges]
+                  pruned_data       = Data(x=self.data.x, edge_index=pruned_edge_index)
+                  print(pruned_data)
+                  print(self.data)
+                  print("prune the graph done!")
+                  ###############################################################
+                  # 对两个loss控制的超参数
+                  lambda_cmd = 0.
+                  lambda_mse = 0.
+                  ###############################################################
+            
+            print("run {}".format(self.prompt_type))
+
 
             best_val_acc = final_test_acc = 0
-            for epoch in range(0, self.epochs):
+
+            # for epoch in range(0, self.epochs):
+            # 用tqdm 更剪辑
+            pbar = tqdm(range(0, self.epochs))
+            for epoch in pbar:
                   t0 = time.time()
                   if self.prompt_type == 'None':
                         loss = self.train(self.data)
@@ -327,7 +434,7 @@ class NodeTask(BaseTask):
                         print("Test Done!")
                         
                   elif self.prompt_type == 'All-in-one':
-                        print("run All-in-one Prompt")
+                        # print("run All-in-one Prompt")
                         loss = self.AllInOneTrain(train_loader)
                         # 看下训练集的训练情况，是不是在被攻击数据上过拟合了 不用的话就注释掉
                         train_acc, F1  = AllInOneEva(train_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
@@ -399,25 +506,29 @@ class NodeTask(BaseTask):
 
 
                   elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
-                        print("run RobustPrompt_T/RobustPrompt_TPlus Prompt")
-                        loss            = self.RobustPromptTranductivetrain(self.data)
+                        # print("run RobustPrompt_T/RobustPrompt_TPlus Prompt")
+                        loss            = self.RobustPromptTranductivetrain(self.data, iid_train, pruned_data, lambda_cmd, lambda_mse)
                         train_acc,  F1  = RobustPromptTranductiveEva(self.data, self.data.train_mask, self.gnn, self.prompt, self.answering, self.output_dim, self.device)
-                        print("Train Done!")
+                        # print("Train Done!")
                         val_acc,  F1    = RobustPromptTranductiveEva(self.data, self.data.val_mask,   self.gnn, self.prompt, self.answering, self.output_dim, self.device)
-                        print("Val Done!")
+                        # print("Val Done!")
                         test_acc, F1    = RobustPromptTranductiveEva(self.data, self.data.test_mask,  self.gnn, self.prompt, self.answering, self.output_dim, self.device)
-                        print("Test Done!")
-
-
+                        # print("Test Done!")
 
 
                   if val_acc > best_val_acc:
                         best_val_acc = val_acc
                         final_test_acc = test_acc
                   # print("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, val_acc, test_acc)) 
+                  
                   # 看下训练集的训练情况，是不是在被攻击数据上过拟合了
                   # 果然 Epoch 009 |  Time(s) 5.1142 | Loss 3.3146 | train Accuracy 0.7143 | val Accuracy 0.3429 | test Accuracy 0.3059
-                  print("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | train Accuracy {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, train_acc, val_acc, test_acc))       
+                  # print("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | train Accuracy {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, train_acc, val_acc, test_acc))       
+
+                  # 使用tqdm进行显示 更简洁
+                  pbar.set_description("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | train Accuracy {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, train_acc, val_acc, test_acc))       
+
+
 
             print(f'Final Test: {final_test_acc:.4f}')
             print("Node Task completed")

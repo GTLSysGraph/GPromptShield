@@ -9,7 +9,7 @@ from prompt_graph.utils import Gprompt_tuning_loss
 import numpy as np
 
 class BaseTask:
-    def __init__(self, pre_train_model_path=None, gnn_type='TransformerConv', hid_dim = 128, num_layer = 2, dataset_name='Cora', prompt_type='GPF', preprocess_method ='None',attack_downstream = False, attack_method = None, epochs=100, shot_num=10, run_split = 1, device : int = 0):
+    def __init__(self, pre_train_model_path=None, gnn_type='TransformerConv', hid_dim = 128, num_layer = 2, dataset_name='Cora', prompt_type='GPF', preprocess_method ='None',attack_downstream = False, attack_method = None, epochs=100, shot_num=10, run_split = 1, specified = False, device : int = 0):
         self.pre_train_model_path = pre_train_model_path
         self.device = torch.device('cuda:'+ str(device) if torch.cuda.is_available() else 'cpu')
         self.preprocess_method = preprocess_method
@@ -24,6 +24,7 @@ class BaseTask:
         # add by ssh
         self.attack_downstream = attack_downstream
         self.attack_method = attack_method
+        self.specified     = specified
         self.initialize_lossfn()
 
     def initialize_optimizer(self):
@@ -132,7 +133,7 @@ class BaseTask:
         elif self.prompt_type == 'RobustPrompt_T':
             self.prompt = RobustPrompt_T(self.input_dim).to(self.device)
         elif self.prompt_type == 'RobustPrompt_Tplus':
-            self.prompt = RobustPrompt_Tplus(self.input_dim, 20).to(self.device)
+            self.prompt = RobustPrompt_Tplus(self.input_dim, 40).to(self.device)
 
         else:
             raise KeyError(" We don't support this kind of prompt.")

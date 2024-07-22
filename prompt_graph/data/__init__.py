@@ -1,3 +1,3 @@
 from .induced_graph import induced_graphs, split_induced_graphs
-from .load4data import load4graph, load4node_demo1, load4node_demo2, NodePretrain, load4node_shot_index,load4link_prediction_single_graph,load4link_prediction_multi_graph,load4node_attack_shot_index
+from .load4data import load4graph, load4node_demo1, load4node_demo2, NodePretrain, load4node_shot_index,load4link_prediction_single_graph,load4link_prediction_multi_graph,load4node_attack_shot_index,load4node_attack_specified_shot_index
 
