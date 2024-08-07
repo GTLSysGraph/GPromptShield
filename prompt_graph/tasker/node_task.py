@@ -111,8 +111,10 @@ class NodeTask(BaseTask):
             else:
                   self.data.to(self.device)
 
-
-
+            # train_indices = self.data.train_mask.nonzero().squeeze()
+            # print(train_indices)
+            # print(self.data.y[train_indices])
+            # quit()
 
       def load_attack_data(self):
             # 加载默认数据划分攻击后的图数据
@@ -334,14 +336,16 @@ class NodeTask(BaseTask):
             prompted_x = self.prompt.add(data.x)
             out       = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
 
-            out_clean = self.gnn(pruned_data.x, pruned_data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
             # sim 关注去噪
-            loss_mse = F.mse_loss(out[data.train_mask], out_clean[data.train_mask])
+            out_clean = self.gnn(pruned_data.x, pruned_data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
+            # loss_mse = F.mse_loss(out[data.train_mask], out_clean[data.train_mask])
+            # loss_mse = F.mse_loss(out, out_clean)
+
             # cmd 关注分布
-            loss_cmd = cmd(out[data.train_mask], out[iid_train, :])
+            # loss_cmd = cmd(out[data.train_mask], out[iid_train, :])
 
             out = self.answering(out)
-            loss = self.criterion(out[data.train_mask], data.y[data.train_mask]) + lambda_cmd * loss_cmd + lambda_mse * loss_mse
+            loss = self.criterion(out[data.train_mask], data.y[data.train_mask]) # + lambda_cmd * loss_cmd + lambda_mse * loss_mse
             loss.backward()  
             self.optimizer.step()
             return loss
@@ -394,13 +398,16 @@ class NodeTask(BaseTask):
                   print("select distribution nodes done!")
                   ###############################################################
 
+
+
+
                   ###############################################################
                   # 噪声
                   # Prune edge index
                   edge_index = self.data.edge_index
                   cosine_sim = F.cosine_similarity(self.data.x[edge_index[0]], self.data.x[edge_index[1]])
                   # Define threshold t
-                  threshold = 0.05
+                  threshold = 0.2
                   # Identify edges to keep
                   keep_edges = cosine_sim >= threshold
                   # Filter edge_index to only keep edges above the threshold
@@ -411,19 +418,23 @@ class NodeTask(BaseTask):
                   print("prune the graph done!")
                   ###############################################################
                   # 对两个loss控制的超参数
-                  lambda_cmd = 0.
-                  lambda_mse = 0.
+                  lambda_cmd = 0.5
+                  lambda_mse = 0.5
                   ###############################################################
+                  # 打印一下节点周围邻居节点的标签，研究一下
+
             
             print("run {}".format(self.prompt_type))
 
 
             best_val_acc = final_test_acc = 0
 
-            # for epoch in range(0, self.epochs):
-            # 用tqdm 更剪辑
-            pbar = tqdm(range(0, self.epochs))
-            for epoch in pbar:
+            for epoch in range(0, self.epochs):
+
+            # 用tqdm 更简洁
+            # pbar = tqdm(range(0, self.epochs))
+            # for epoch in pbar:
+                  
                   t0 = time.time()
                   if self.prompt_type == 'None':
                         loss = self.train(self.data)
@@ -466,13 +477,15 @@ class NodeTask(BaseTask):
                   elif self.prompt_type in ['GPF', 'GPF-plus']:
                         print("run GPF/GPF-Plus Prompt")
                         loss = self.GPFTrain(train_loader)
-                        print("train batch Done!")
+                        train_acc, F1 = GPFEva(train_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)    
+                        # print("train batch Done!")
+
 
                         val_acc, F1 = GPFEva(val_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)    
-                        print("val batch Done!")
+                        # print("val batch Done!")
 
                         test_acc, F1 = GPFEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)    
-                        print("test batch Done!")
+                        # print("test batch Done!")
 
 
                   elif self.prompt_type == 'MultiGprompt':
@@ -523,10 +536,10 @@ class NodeTask(BaseTask):
                   
                   # 看下训练集的训练情况，是不是在被攻击数据上过拟合了
                   # 果然 Epoch 009 |  Time(s) 5.1142 | Loss 3.3146 | train Accuracy 0.7143 | val Accuracy 0.3429 | test Accuracy 0.3059
-                  # print("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | train Accuracy {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, train_acc, val_acc, test_acc))       
+                  print("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | train Accuracy {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, train_acc, val_acc, test_acc))       
 
                   # 使用tqdm进行显示 更简洁
-                  pbar.set_description("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | train Accuracy {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, train_acc, val_acc, test_acc))       
+                  # pbar.set_description("Epoch {:03d} |  Time(s) {:.4f} | Loss {:.4f} | train Accuracy {:.4f} | val Accuracy {:.4f} | test Accuracy {:.4f} ".format(epoch + 1, time.time() - t0, loss, train_acc, val_acc, test_acc))       
 
 
 
