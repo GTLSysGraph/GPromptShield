@@ -40,6 +40,7 @@ class NodePrePrompt(nn.Module):
         self.loss = nn.BCEWithLogitsLoss()
         self.act = nn.ELU()
 
+
     def load_data(self):
         self.adj, features, self.labels = process.load_data(self.dataset_name)
         # self.adj, features, self.labels = process.load_data(self.dataset_name)  
@@ -49,11 +50,21 @@ class NodePrePrompt(nn.Module):
             self.negetive_sample = prompt_pretrain_sample(self.adj,50)
         else:
             self.negetive_sample = prompt_pretrain_sample(self.adj,200)
+        # Cora为例子的shape (2485, 201)
         # prompt_pretrain_sample为图中的每个节点提供了一个正样本和多个负样本的索引
         nb_nodes = self.features.shape[0]  # node number
         ft_size = self.features.shape[1]  # node features dim
         nb_classes = self.labels.shape[1]  # classes = 6
         return ft_size, nb_nodes
+
+    #  seq1,          seq2,               seq3,                  seq4,                  seq5,              seq6,
+    # features,     shuf_fts,        aug_features1edge,    aug_features2edge,    aug_features1mask,  aug_features2mask,
+    
+    #   adj,      aug_adj1edge,        aug_adj2edge,         aug_adj1mask,          aug_adj2mask,
+    # sp_adj,    sp_aug_adj1edge,    sp_aug_adj2edge,      sp_aug_adj1mask,       sp_aug_adj2mask, 
+    
+    # sparse,        msk,              samp_bias1,           samp_bias2,                lbl
+    # sparse,       None,                None,                  None,                 lbl=lbl
 
     def forward(self, seq1, seq2, seq3, seq4, seq5, seq6, adj, aug_adj1edge, aug_adj2edge, aug_adj1mask, aug_adj2mask,
                 sparse, msk, samp_bias1, samp_bias2, lbl):
@@ -61,16 +72,19 @@ class NodePrePrompt(nn.Module):
         seq2 = torch.squeeze(seq2,0)
         seq3 = torch.squeeze(seq3,0)
         seq4 = torch.squeeze(seq4,0)
+        # dual-prompt mechanism    composed prompts和open prompts应用于预训练的图编码器的不同层
+        # composed prompts 组合提示旨在将借口任务特定知识转移到下游任务
         logits1 = self.dgi(self.gcn, seq1, seq2, adj, sparse, msk, samp_bias1, samp_bias2)
-        # print("logits1", logits1.shape)
+        # print("logits1", logits1.shape) logits1 torch.Size([1, 4970])
         logits2 = self.graphcledge(self.gcn, seq1, seq2, seq3, seq4, adj, aug_adj1edge, aug_adj2edge, sparse, msk,
                                    samp_bias1,
                                    samp_bias2, aug_type='edge')
-        # print("logits2", logits2.shape)
+        # print("logits2", logits2.shape) logits2 torch.Size([1, 4970])
         logits3 = self.lp(self.gcn,seq1,adj,sparse)
-        # print("logits3", logits3.shape)
+        # print("logits3", logits3.shape) logits3 torch.Size([2485, 256])
         # quit()
         
+        # open prompts 开放式提示有助于全局任务间知识的转移 在预训练的时候这两个一起训练，prompt的时候只tune open prompts
         logits4 = self.dgiprompt(self.gcn, seq1, seq2, adj, sparse, msk, samp_bias1, samp_bias2)
         logits5 = self.graphcledgeprompt(self.gcn, seq1, seq2, seq3, seq4, adj, aug_adj1edge, aug_adj2edge, sparse, msk,
                                    samp_bias1,
@@ -99,7 +113,7 @@ class NodePrePrompt(nn.Module):
     
     def pretrain(self):
         batch_size = 1
-        nb_epochs = 200
+        nb_epochs = 1000
         patience = 20
         lr = 0.0001
         l2_coef = 0.0
@@ -116,6 +130,7 @@ class NodePrePrompt(nn.Module):
         # print("Begin Aug:[{}]".format(args.aug_type))
         # if args.aug_type == 'edge':
         adj = self.adj
+        # 边扰动，特征不变
         aug_features1edge = features
         aug_features2edge = features
 
@@ -123,6 +138,7 @@ class NodePrePrompt(nn.Module):
         aug_adj1edge = aug.aug_random_edge(adj, drop_percent=drop_percent)  # random drop edges
         aug_adj2edge = aug.aug_random_edge(adj, drop_percent=drop_percent)  # random drop edges
 
+        # 特征扰动，边不变
         aug_features1mask = aug.aug_random_mask(features, drop_percent=drop_percent)
         aug_features2mask = aug.aug_random_mask(features, drop_percent=drop_percent)
 
@@ -154,6 +170,10 @@ class NodePrePrompt(nn.Module):
         LP = False
         print("")
         lr=0.0001
+
+        # for name, paramer in self.named_parameters():
+        #     print(name, paramer)
+        # quit()
 
         optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=l2_coef)
         if torch.cuda.is_available():
@@ -216,8 +236,8 @@ class NodePrePrompt(nn.Module):
         #     os.makedirs(folder_path)
 
         torch.save(self.state_dict(),
-                    "./pre_trained_model/{}.{}.pth".format(self.dataset_name, 'MultiGprompt'))
-        print("+++model saved ! {}.{}.pth".format(self.dataset_name, 'MultiGprompt'))
+                    "./pre_trained_model/{}.{}.epoch_{}.pth".format(self.dataset_name, 'MultiGprompt', nb_epochs))
+        print("+++model saved ! {}.{}.epoch_{}.pth".format(self.dataset_name, 'MultiGprompt', nb_epochs))
 
 
 
@@ -376,34 +396,73 @@ class GraphPrePrompt(nn.Module):
 
 def mygather(feature, index): 
     input_size=index.size(0)
-    index = index.flatten()
-    index = index.reshape(len(index), 1)
-    index = torch.broadcast_to(index, (len(index), feature.size(1)))
-    res = torch.gather(feature, dim=0, index=index)
+    index = index.flatten() # 2485 * 201 = torch.Size([499485])
+    index = index.reshape(len(index), 1) # torch.Size([499485, 1])
+    # 扩展维度 
+    # example 
+    # x = torch.tensor([[1],
+    #               [2],
+    #               [3]])
+    # torch.broadcast_to(x, (3, 3))
+    # tensor([[1, 1, 1],
+    #     [2, 2, 2],
+    #     [3, 3, 3]])
+    index = torch.broadcast_to(index, (len(index), feature.size(1))) # torch.Size([499485, 256])
+    # res得到499485个索引对应的feature
+    res = torch.gather(feature, dim=0, index=index) # torch.Size([499485, 256])
+    # example 
+    # a = tensor([
+    #     [ 0,  1,  2,  3,  4],
+    #     [ 5,  6,  7,  8,  9],
+    #     [10, 11, 12, 13, 14]])
+
+    # 张量b的元素都是对应张量a的索引
+    # b = tensor(
+    # [[1, 0, 0, 0, 0],
+    # [0, 0, 1, 0, 0],
+    # [0, 0, 0, 0, 0]])
+
+    # c = a.gather(0, b) # dim=0  因为dim=0，c的第一列的值[5,0,0], 从a的第一列[0,5,10]取对应b中第一列的索引[1,0,0]得到
+    # d = a.gather(1, b) # dim=1  因为dim=1，d的第一列的值[1,5,10],从a的每一行对应的列索引[1,0,0]得到，即a[0][1],a[1][0],a[2][0]
+    # c= tensor([
+    #         [5, 1, 2, 3, 4],
+    #         [0, 1, 7, 3, 4],
+    #         [0, 1, 2, 3, 4]])
+    # d=tensor([
+    #         [ 1,  0,  0,  0,  0],
+    #         [ 5,  5,  6,  5,  5],
+    #         [10, 10, 10, 10, 10]])
+
+    # 通过reshape得到每一个节点对应的所有正负样本的feature torch.Size([2485, 201, 256])
     return res.reshape(input_size,-1,feature.size(1))
 
 
 def compareloss(feature,tuples,temperature,device):
-    h_tuples=mygather(feature,tuples)
+    # feature.shape  torch.Size([2485, 256])
+    # tuples.shape   torch.Size([2485, 201])
+    h_tuples=mygather(feature,tuples) # torch.Size([2485, 201, 256])
     temp = torch.arange(0, len(tuples))
-    temp = temp.reshape(-1, 1)
+    temp = temp.reshape(-1, 1) # torch.Size([2485, 1])
     temp = torch.broadcast_to(temp, (temp.size(0), tuples.size(1)))
     temp=temp.to(device)
-    h_i = mygather(feature, temp)
-    sim = F.cosine_similarity(h_i, h_tuples, dim=2)
-    # print("sim",sim)
+    h_i = mygather(feature, temp) #torch.Size([2485, 201, 256])
+    sim = F.cosine_similarity(h_i, h_tuples, dim=2) # torch.Size([2485, 201])
     exp = torch.exp(sim)
     exp = exp / temperature
-    exp = exp.permute(1, 0)
-    numerator = exp[0].reshape(-1, 1)
-    denominator = exp[1:exp.size(0)]
-    denominator = denominator.permute(1, 0)
+    exp = exp.permute(1, 0) # torch.Size([201, 2485])
+    numerator = exp[0].reshape(-1, 1) # torch.Size([2485, 1]) 每个节点对应的一个正样本的相似度
+    denominator = exp[1:exp.size(0)] 
+    denominator = denominator.permute(1, 0) # torch.Size([2485, 200]) 每个节点对应的200个负样本的相似度
     denominator = denominator.sum(dim=1, keepdim=True)
-    res = -1 * torch.log(numerator / denominator)
+    res = -1 * torch.log(numerator / denominator) # 更靠近正样本而原理负样本
     return res.mean()
 
 
 def prompt_pretrain_sample(adj,n):
+    # csr矩阵是压缩稀疏行格式
+    # indptr 中的值可以这样理解，通过第 i + 1 行和第 i 行值的差表示第 i 行拥有多少非0元素，也可以是一种长度的指示，用来从induces中寻找确切的非零值列号
+    # 对于第 i 行而言，该行中非零元素的列索引为 indices[indptr[i]:indptr[i+1]]
+    # 得到了行索引、列索引，相应的数据存放在： data[indptr[i]:indptr[i+1]]
     nodenum=adj.shape[0]
     indices=adj.indices
     indptr=adj.indptr
@@ -411,11 +470,14 @@ def prompt_pretrain_sample(adj,n):
     whole=np.array(range(nodenum))
     print("#############")
     print("start sampling disconnected tuples")
+    # 加了个trange，对抓取添加进度条能更加直观的看到生成了多少，就是进度条可视化
     for i in trange(nodenum):
         nonzero_index_i_row=indices[indptr[i]:indptr[i+1]]
+        # np.setdiff1d找到2个数组中集合元素的差异，返回在whole中但不在nonzero_index_i_row中的已排序的唯一值。
         zero_index_i_row=np.setdiff1d(whole,nonzero_index_i_row)
         np.random.shuffle(nonzero_index_i_row)
         np.random.shuffle(zero_index_i_row)
+        # 从nonzero中（即相邻的节点）取一个，即一个正样本，从zero中（即不相邻的节点）取n个，即n个负样本
         if np.size(nonzero_index_i_row)==0:
             res[i][0] = i
         else:

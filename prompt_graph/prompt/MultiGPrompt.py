@@ -8,11 +8,13 @@ import numpy as np
 class downprompt(nn.Module):
     def __init__(self, prompt1, prompt2, prompt3,a4,ft_in, nb_classes, device):
         super(downprompt, self).__init__()
+        # 下游任务新定义的prompt
         self.downprompt = downstreamprompt(ft_in)
         self.nb_classes = nb_classes
         self.a4 = a4
         self.leakyrelu = nn.ELU()
         self.device = device
+        # preprompt得到的不同预训练模型的prompt
         self.prompt = torch.cat((prompt1, prompt2, prompt3), 0) # torch.Size([3, 256])
         self.nodelabelprompt = weighted_prompt(3)
         self.dffprompt = weighted_feature(2)
@@ -30,13 +32,20 @@ class downprompt(nn.Module):
         self.ave = torch.FloatTensor(nb_classes,ft_in).to(self.device)
    
     def forward(self,seq,seq1,labels,train=0):
-
+        # pretrain_embs, pretrain_embs1, train_lbls,1     
+        # pretrain_embs  是在preprompt生成的train embs
+        # pretrain_embs1 是加了提示后的train idx生成的train embs
         weight = self.leakyrelu(self.nodelabelprompt(self.prompt))
-        weight = self.one + weight
+        weight = self.one + weight # torch.Size([1, 256])
+        # rawret1 对emb添加preprompt训练的prompt
         rawret1 = weight * seq
+        # rawret2 对emb添加游任务新定义的downprompt
         rawret2 = self.downprompt(seq)
+        # rawret4 是对原始特征加prompt输入的gcn中得到的结果
         rawret4 = seq1
+        # rawret3 整合rawret1和rawret2的结果
         rawret3 = self.dffprompt(rawret1 ,rawret2)
+        # 所以整个rawret里面包含了三种prompt进行微调
         rawret =rawret3 +self.a4 * rawret4
         rawret = rawret.to(self.device) # torch.Size([7, 256]) 1 shot cora
         if train == 1: # 把每个标签的embedding做个均值
@@ -49,8 +58,7 @@ class downprompt(nn.Module):
             for i in range(self.nb_classes):
                 ret[x][i] = torch.cosine_similarity(rawret[x], self.ave[i], dim=0)
 
-
-        ret = F.softmax(ret, dim=1)
+        ret = F.softmax(ret, dim=1) # torch.Size([7, 7])
 
         # ret = torch.argmax(ret, dim=1)
         # print('ret=', ret)
@@ -111,15 +119,17 @@ class weighted_prompt(nn.Module):
         self.reset_parameters()
     def reset_parameters(self):
         # torch.nn.init.xavier_uniform_(self.weight)
-
         self.weight[0][0].data.fill_(0.5)
         self.weight[0][1].data.fill_(0.4)
         self.weight[0][2].data.fill_(0.3)
+
     def forward(self, graph_embedding):
         # print("weight",self.weight)
         graph_embedding=torch.mm(self.weight,graph_embedding)
         return graph_embedding
     
+
+
 class weighted_feature(nn.Module):
     def __init__(self,weightednum):
         super(weighted_feature, self).__init__()
@@ -142,16 +152,20 @@ class downstreamprompt(nn.Module):
         self.weight= nn.Parameter(torch.FloatTensor(1,hid_units), requires_grad=True)
         self.act = nn.ELU()
         self.reset_parameters()
+
     def reset_parameters(self):
         torch.nn.init.xavier_uniform_(self.weight)
-
         # self.weight[0][0].data.fill_(0.3)
         # self.weight[0][1].data.fill_(0.3)
         # self.weight[0][2].data.fill_(0.3)
+
     def forward(self, graph_embedding):
         # print("weight",self.weight)
         graph_embedding=self.weight * graph_embedding
         return graph_embedding
+
+
+
 
 class featureprompt(nn.Module):
     def __init__(self,prompt1,prompt2,prompt3):
@@ -162,7 +176,15 @@ class featureprompt(nn.Module):
         # print("prompt",self.weightprompt.weight)
         weight = self.weightprompt(self.prompt)
         feature = weight * feature
+        # print(self.prompt.shape) # torch.Size([3, 1433])
+        # print(weight.shape)      # torch.Size([1, 1433])
+        # print(feature.shape)     # torch.Size([1, 2485, 1433])
         return feature
+
+
+
+
+
 
 class GCN(nn.Module):
     def __init__(self, in_ft, out_ft, act=None, bias=True):
@@ -260,14 +282,14 @@ class Discriminator(nn.Module):
 
     def forward(self, c, h_pl, h_mi, s_bias1=None, s_bias2=None):
         c_x = torch.unsqueeze(c, 1)
-        # print("c_x", c_x.shape)
+        # print("c_x", c_x.shape) c_x torch.Size([1, 1, 256])
         c_x = c_x.expand_as(h_pl)
-        # print("c_x", c_x.shape)
+        # print("c_x", c_x.shape) c_x torch.Size([1, 2485, 256])
 
         sc_1 = torch.squeeze(self.f_k(h_pl, c_x), 2)
         sc_2 = torch.squeeze(self.f_k(h_mi, c_x), 2)
-        # print("sc_1", sc_1.shape)
-        # print("sc_2", sc_2.shape)
+        # print("sc_1", sc_1.shape) sc_1 torch.Size([1, 2485])
+        # print("sc_2", sc_2.shape) sc_2 torch.Size([1, 2485])
 
 
         if s_bias1 is not None:
@@ -276,8 +298,7 @@ class Discriminator(nn.Module):
             sc_2 += s_bias2
 
         logits = torch.cat((sc_1, sc_2), 1)
-        # print("logits", logits.shape)
-
+        # print("logits", logits.shape) logits torch.Size([1, 4970])
         return logits
 
 # Applies an average on seq, of shape (batch, nodes, features)
@@ -306,15 +327,16 @@ class DGI(nn.Module):
 
     def forward(self, gcn, seq1, seq2, adj, sparse, msk, samp_bias1, samp_bias2):
         h_1 = gcn(seq1, adj, sparse)
-        # print("h_1",h_1.shape)
+        # print("h_1",h_1.shape) h_1 torch.Size([1, 2485, 256])
         h_3 = h_1 * self.prompt
-        # print("h_3", h_3.shape)
+        # print("h_3", h_3.shape)  h_3 torch.Size([1, 2485, 256])
         c = self.read(h_1, msk)
         c = self.sigm(c)
-        # print("c", c.shape)
+        # print("c", c.shape) c torch.Size([1, 256])
         h_2 = gcn(seq2, adj, sparse)
         h_4 = h_2 * self.prompt
-        # print("h_4", h_4.shape)
+        # print("h_4", h_4.shape) h_4 torch.Size([1, 2485, 256])
+
         ret = self.disc(c, h_3, h_4, samp_bias1, samp_bias2)
         return ret
 
@@ -361,6 +383,8 @@ class GraphCL(nn.Module):
         h_0 = gcn(seq1, adj, sparse)
 
         h_00 = h_0 * self.prompt
+        # print('h_00', h_00.shape) h_00 torch.Size([1, 2485, 256])
+
         if aug_type == 'edge':
 
             h_1 = gcn(seq1, aug_adj1, sparse)
@@ -381,19 +405,25 @@ class GraphCL(nn.Module):
 
         h_11 = h_1 * self.prompt
         h_33 = h_3 * self.prompt
+        # print('h_11', h_11.shape) h_11 torch.Size([1, 2485, 256])
+        # print('h_33', h_11.shape) h_33 torch.Size([1, 2485, 256])
 
         c_1 = self.read(h_11, msk)
         c_1 = self.sigm(c_1)
+        # print('c_1', c_1.shape)  c_1 torch.Size([1, 256])
 
         c_3 = self.read(h_33, msk)
         c_3 = self.sigm(c_3)
+        # print('c_3', c_3.shape)  c_3 torch.Size([1, 256])
 
         h_2 = gcn(seq2, adj, sparse)
-
         h_22 = h_2 * self.prompt
+        # print('h_22', h_22.shape) h_22 torch.Size([1, 2485, 256])
 
         ret1 = self.disc(c_1, h_00, h_22, samp_bias1, samp_bias2)
         ret2 = self.disc(c_3, h_00, h_22, samp_bias1, samp_bias2)
+        # print('ret1', ret1.shape) ret1 torch.Size([1, 4970])
+        # print('ret2', ret2.shape) ret2 torch.Size([1, 4970])
 
         ret = ret1 + ret2
         return ret

@@ -14,8 +14,9 @@ if args.task == 'Edgepred_Gprompt':
 
 
 if args.task == 'NodeMultiGprompt':
+    # epoch 在内部自己设置
     nonlinearity = 'prelu'
-    pt = NodePrePrompt(dataset_name=args.dataset_name, n_h=args.hid_dim, activation=nonlinearity, a1 = 0.9, a2= 0.9, a3= 0.1, a4= 0.0001, num_layers_num = 1,  p = 0.3, device=args.device)
+    pt = NodePrePrompt(dataset_name=args.dataset_name, n_h=args.hid_dim, activation=nonlinearity, a1 = 0.9, a2= 0.9, a3= 0.1, a4= 0.0001, num_layers_num = args.num_layer,  p = 0.3, device=args.device)
 
 
 # if args.task == 'GraphMultiGprompt':

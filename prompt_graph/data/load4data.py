@@ -356,13 +356,17 @@ def load4node_attack_specified_shot_index(dataname, attack_method, shot_num= 10,
 
 
 
-
-
-
 def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 1):
     print(dataname)
     if dataname in ['PubMed', 'CiteSeer', 'Cora']:
         dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures()) 服了，找了一晚上问题发现在这里 不要加，要和pretrain统一，tmd 你大爷
+
+        # use the largest connected component
+        # print('Now use LLC datasets for pretrain !')
+        # path    = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+        # dataset = get_dataset(path, 'Attack-' + dataname, 'Meta_Self', 0.0) # 0.0的扰动率即代表最大联通分量 
+        # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
+
     elif dataname in ['Computers', 'Photo']:
         dataset = Amazon(root='data/amazon', name=dataname)
     elif dataname == 'Reddit':
@@ -407,7 +411,9 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
     test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
     val_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
 
-    index_path = './data/{}/index/shot_{}/{}'.format(dataname, str(shot_num), str(run_split))
+    # index_path = './data/{}/index/shot_{}/{}'.format(dataname, str(shot_num), str(run_split))
+    index_path = './data_fewshot/{}/shot_{}/{}/index'.format(dataname, str(shot_num), str(run_split))
+    
     if os.path.exists(index_path):
         train_indices  = torch.load(index_path + '/train_idx.pt').type(torch.long)
         train_lbls     = torch.load(index_path + '/train_labels.pt').type(torch.long).squeeze()
@@ -581,7 +587,11 @@ def load4node_demo1(dataname, preprocess_method, shot_num= 10):
 
 def load4link_prediction_single_graph(dataname, num_per_samples=1):
     data, input_dim, output_dim = load4node_demo2(dataname)
-
+    
+    # from torch_geometric.utils import remove_self_loops
+    # data.edge_index, _ = remove_self_loops(data.edge_index)
+    # print(data)
+    # quit()
     
     r"""Perform negative sampling to generate negative neighbor samples"""
     if data.is_directed():

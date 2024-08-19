@@ -18,7 +18,7 @@ class Edgepred_Gprompt(PreTrain):
 
     def generate_loader_data(self):    
         if self.dataset_name in ['PubMed', 'CiteSeer', 'Cora', 'Computers', 'Photo','ogbn-arxiv', 'Flickr','Actor', 'Texas', 'Wisconsin']:            
-            self.data, edge_label, edge_index, self.input_dim, self.output_dim = load4link_prediction_single_graph(self.dataset_name)
+            self.data, _, _, self.input_dim, self.output_dim = load4link_prediction_single_graph(self.dataset_name)
             self.adj = edge_index_to_sparse_matrix(self.data.edge_index, self.data.x.shape[0]).to(self.device)
             data = prepare_structured_data(self.data)
             if self.dataset_name in['ogbn-arxiv', 'Flickr']:
@@ -46,6 +46,7 @@ class Edgepred_Gprompt(PreTrain):
         device = self.device
         self.gnn.train()
         for step, batch in enumerate(self.dataloader): 
+            # print(batch[0].shape)  (batch_size,3)
             self.optimizer.zero_grad()
 
             batch = batch[0]
@@ -116,6 +117,6 @@ class Edgepred_Gprompt(PreTrain):
         #     os.makedirs(folder_path)
 
         torch.save(self.gnn.state_dict(),
-                    "./pre_trained_moedl/{}.{}.{}.{}.pth".format(self.dataset_name, 'Edgepred_Gprompt', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))
+                    "./pre_trained_model/{}.{}.{}.{}.pth".format(self.dataset_name, 'Edgepred_Gprompt', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))
         
-        print("+++model saved ! {}/{}.{}.{}.pth".format(self.dataset_name, 'Edgepred_Gprompt', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))
+        print("+++model saved ! {}.{}.{}.{}.pth".format(self.dataset_name, 'Edgepred_Gprompt', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))

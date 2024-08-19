@@ -17,8 +17,8 @@ def MultiGpromptEva(test_embs, test_lbls, idx_test, prompt_feature, Preprompt, D
     with torch.no_grad(): 
         embeds1, _ = Preprompt.embed(prompt_feature, sp_adj, True, None, False)
         test_embs1 = embeds1[0, idx_test]
+        # test_embs 是预训练gcn得到的没有加任何提示的emb，在Downprompt中添加两种prompt，结合test_embs1一共三种prompt
         logits = DownPrompt(test_embs, test_embs1, test_lbls)
-
         preds = torch.argmax(logits, dim=1)
         acc = accuracy(preds, test_lbls)
         f1 = macro_f1(preds, test_lbls)

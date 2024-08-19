@@ -44,7 +44,6 @@ class BaseTask:
             self.answer_opi = optim.Adam(filter(lambda p: p.requires_grad, self.answering.parameters()), lr=0.001, weight_decay= 0.00001)
         
         
-        
         # add by ssh
         elif self.prompt_type == 'RobustPrompt_I':
             self.pg_opi = optim.Adam(filter(lambda p: p.requires_grad, self.prompt.parameters()), lr=0.001, weight_decay= 0.00001)
@@ -106,10 +105,11 @@ class BaseTask:
             # Node
             if self.task_type == 'NodeTask':
                 nonlinearity = 'prelu'
-                self.Preprompt = NodePrePrompt(self.dataset_name, self.hid_dim, nonlinearity, 0.9, 0.9, 0.1, 0.001, 1, 0.3, self.device).to(self.device)
-                self.Preprompt.load_state_dict(torch.load(self.pre_train_model_path))
+                self.Preprompt = NodePrePrompt(self.dataset_name, self.hid_dim, nonlinearity, 0.9, 0.9, 0.1, 0.0001, self.num_layer, 0.3, self.device).to(self.device)
+                self.Preprompt.load_state_dict(torch.load(self.pre_train_model_path, map_location=self.device))
                 self.Preprompt.eval()
                 self.feature_prompt = featureprompt(self.Preprompt.dgiprompt.prompt,self.Preprompt.graphcledgeprompt.prompt,self.Preprompt.lpprompt.prompt).to(self.device)
+                # print(self.feature_prompt.prompt.shape) # torch.Size([3, 1433])
             # Graph
             if self.task_type == 'GraphTask':
                 nonlinearity = 'prelu'
@@ -122,7 +122,7 @@ class BaseTask:
             dgiprompt = self.Preprompt.dgi.prompt  
             graphcledgeprompt = self.Preprompt.graphcledge.prompt
             lpprompt = self.Preprompt.lp.prompt
-            self.DownPrompt = downprompt(dgiprompt, graphcledgeprompt, lpprompt, 0.0001, self.hid_dim, self.output_dim, self.device).to(self.device)
+            self.DownPrompt = downprompt(dgiprompt, graphcledgeprompt, lpprompt, 0.001, self.hid_dim, self.output_dim, self.device).to(self.device)
             # for name, paramer in self.DownPrompt.named_parameters():
             #     print(name)
             # quit()

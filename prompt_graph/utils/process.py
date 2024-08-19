@@ -174,6 +174,12 @@ def sample_mask(idx, l):
 from torch_geometric.utils import to_scipy_sparse_matrix
 def load_data(dataset):
     data,_ ,_ = load4node_demo2(dataset)
+    from torch_geometric.utils import contains_self_loops,remove_self_loops
+    if contains_self_loops(data.edge_index):
+        data.edge_index, _ = remove_self_loops(data.edge_index)
+    else:
+        print("MultiGPrompt automatically adds self-loops subsequently.")
+
     adj = to_scipy_sparse_matrix(data.edge_index).tocsr()
 
     # Convert features to dense format and then to scipy sparse matrix in lil format

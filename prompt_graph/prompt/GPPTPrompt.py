@@ -12,7 +12,10 @@ class SimpleMeanConv(MessagePassing):
         # x 代表节点特征矩阵，edge_index 是图的边索引列表
 
         # 在边索引中添加自环，这样在聚合时，节点也会考虑自己的特征
-        edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+        # 如果有自环，就不需要重复添加了，直接用
+        from torch_geometric.utils import contains_self_loops
+        if not contains_self_loops(edge_index):
+            edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
 
         # 开始消息传递过程，其中x是每个节点的特征，edge_index定义了节点间的连接关系
         return self.propagate(edge_index, size=(x.size(0), x.size(0)), x=x)
@@ -31,9 +34,11 @@ class GPPTPrompt(torch.nn.Module):
         self.StructureToken=self.StructureToken.to(device)  # structure token
         self.TaskToken = torch.nn.ModuleList()
         for i in range(center_num):
+            # 每个TaskToken都是一个独立的包含不同标签的token，对应后面的正交约束
             self.TaskToken.append(torch.nn.Linear(2 * n_hidden, n_classes, bias=False))  
-            # 这里初始化是2倍的n_hidden，但是在下面用均值后的值初始化变成了单倍的n_hidden
-            #task token
+            # 这里初始化是2倍的n_hidden，但是在下面用均值后的值初始化变成了单倍的n_hidden,GPPT源码是把向量拼接在一起，但是源码的实现有问题，所以这里直接用n_hidden也可以
+        
+        #task token
         self.TaskToken = self.TaskToken.to(device)
 
     def weigth_init(self, h, edge_index, label, index):
@@ -42,21 +47,25 @@ class GPPTPrompt(torch.nn.Module):
         conv = SimpleMeanConv()
         # 使用这个层进行前向传播，得到聚合后的节点特征
         h = conv(h, edge_index)
-        
+
+        # GPPT源码是把向量拼接在一起
+        # h_neighbor = conv(h, edge_index)
+        # h = torch.cat((h, h_neighbor),dim=1)
+
         features=h[index]
         labels=label[index.long()]
 
+        # 对train set做聚类，如果1 shot则每一个节点一个类， features的shape只有train
         cluster = KMeans(n_clusters=self.center_num,random_state=0).fit(features.detach().cpu())
         temp=torch.FloatTensor(cluster.cluster_centers_).to(self.device)
         self.StructureToken.weight.data = temp.clone().detach()
-        
 
         p=[]
         for i in range(self.n_classes):
             p.append(features[labels==i].mean(dim=0).view(1,-1))
         temp=torch.cat(p,dim=0).to(self.device)
         for i in range(self.center_num):
-            # 这里本来是2倍的n_hidden,用均值后的值初始化变成了单倍的n_hidden
+            # 这里本来是2倍的n_hidden,用均值后的值初始化变成了单倍的n_hidden，初始化每个token都一样
             self.TaskToken[i].weight.data = temp.clone().detach()
         
     

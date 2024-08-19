@@ -58,7 +58,7 @@ class NodeTask(BaseTask):
             # adj, features, labels = process.load_data(self.dataset_name)  
             self.input_dim = features.shape[1]
             self.output_dim = labels.shape[1]
-            print('a',self.output_dim)
+
             features, _ = process.preprocess_features(features)
             self.sp_adj = process.sparse_mx_to_torch_sparse_tensor(adj).to(self.device)
             self.labels = torch.FloatTensor(labels[np.newaxis])
@@ -158,7 +158,13 @@ class NodeTask(BaseTask):
 
 
       def load_data(self):
-            self.data, self.dataset = load4node_shot_index(self.dataset_name, preprocess_method = self.preprocess_method, shot_num = self.shot_num, run_split= self.run_split)
+            self.data, self.dataset = load4node_shot_index(self.dataset_name, preprocess_method = 
+            self.preprocess_method, shot_num = self.shot_num, run_split= self.run_split)
+
+            # train_indices = self.data.train_mask.nonzero().squeeze()
+            # print(train_indices)
+            # print(self.data.y[train_indices])
+            # quit()
 
             if self.prompt_type == 'MultiGprompt':
                   self.process_multigprompt_data(self.data)
@@ -168,8 +174,12 @@ class NodeTask(BaseTask):
 
 
             if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus']:
-                  file_dir = './data/{}/induced_graph/shot_{}/{}'.format(self.dataset_name, str(self.shot_num), str(self.run_split))
+                  # file_dir = './data/{}/induced_graph/shot_{}/{}'.format(self.dataset_name, str(self.shot_num), str(self.run_split))
+                  # file_path = os.path.join(file_dir, 'induced_graph.pkl')
+
+                  file_dir = './data_fewshot/{}/shot_{}/{}/induced_graph/'.format(self.dataset_name, str(self.shot_num), str(self.run_split))
                   file_path = os.path.join(file_dir, 'induced_graph.pkl')
+
 
                   # 注意，换shot num的时候要把induced graph删掉
                   if os.path.exists(file_path):
@@ -189,7 +199,7 @@ class NodeTask(BaseTask):
                         self.val_dataset = graphs_dict['val_graphs']
             else:
                   self.data.to(self.device)
- 
+            quit()
 
       def train(self, data):
             self.gnn.train()
@@ -235,7 +245,9 @@ class NodeTask(BaseTask):
             # embeds1 = self.gnn(prompt_feature, self.data.edge_index)
             embeds1= self.Preprompt.gcn(prompt_feature, self.sp_adj , True, False)
             pretrain_embs1 = embeds1[0, train_idx]
-            logits = self.DownPrompt(pretrain_embs,pretrain_embs1, train_lbls,1).float().to(self.device)
+            # pretrain_embs  是使用preprompt的gcn生成的还没有加prompt的embs的train embs
+            # pretrain_embs1 是加了提示后的train features生成的train embs
+            logits = self.DownPrompt(pretrain_embs,pretrain_embs1, train_lbls, 1).float().to(self.device) # 1 shot  Cora torch.Size([7, 7])
             loss = self.criterion(logits, train_lbls)           
             loss.backward(retain_graph=True)
             self.optimizer.step()
@@ -284,6 +296,7 @@ class NodeTask(BaseTask):
                   self.pg_opi.zero_grad() 
                   batch = batch.to(self.device)
                   out = self.gnn(batch.x, batch.edge_index, batch.batch, prompt = self.prompt, prompt_type = 'Gprompt')
+
                   # out = s𝑡,𝑥 = ReadOut({p𝑡 ⊙ h𝑣 : 𝑣 ∈ 𝑉 (𝑆𝑥)}),
                   center, class_counts = center_embedding(out, batch.y, self.output_dim)
                    # 累积中心向量和样本数
@@ -359,7 +372,6 @@ class NodeTask(BaseTask):
                   train_loader = DataLoader(self.train_dataset, batch_size=100, shuffle=True)
                   test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
                   val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
-
                   if self.prompt_type == 'RobustPrompt_I':
                         print("Build a remaining dataloader.")
                         remaining_loader = DataLoader(self.remaining_dataset, batch_size=2500, shuffle=True)
@@ -367,6 +379,7 @@ class NodeTask(BaseTask):
                   print("prepare induce graph data is finished!")
 
             if self.prompt_type == 'MultiGprompt':
+                  # 使用预训练的GCN得到还没有加prompt的embs
                   embeds, _ = self.Preprompt.embed(self.features, self.sp_adj, True, None, False)
                   idx_train  = self.data.train_mask.nonzero().squeeze()
                   train_lbls = self.data.y[self.data.train_mask].type(torch.long) 
@@ -398,9 +411,6 @@ class NodeTask(BaseTask):
                   print("select distribution nodes done!")
                   ###############################################################
 
-
-
-
                   ###############################################################
                   # 噪声
                   # Prune edge index
@@ -423,18 +433,13 @@ class NodeTask(BaseTask):
                   ###############################################################
                   # 打印一下节点周围邻居节点的标签，研究一下
 
-            
+
             print("run {}".format(self.prompt_type))
-
-
             best_val_acc = final_test_acc = 0
-
             for epoch in range(0, self.epochs):
-
             # 用tqdm 更简洁
             # pbar = tqdm(range(0, self.epochs))
             # for epoch in pbar:
-                  
                   t0 = time.time()
                   if self.prompt_type == 'None':
                         loss = self.train(self.data)
@@ -458,6 +463,7 @@ class NodeTask(BaseTask):
                   elif self.prompt_type == 'GPPT':
                         print("run GPPT Prompt")
                         loss     = self.GPPTtrain(self.data)
+                        train_acc,  F1  = GPPTEva(self.data, self.data.train_mask, self.gnn, self.prompt, self.output_dim, self.device)
                         print("Train Done!")
                         val_acc,  F1  = GPPTEva(self.data, self.data.val_mask, self.gnn, self.prompt, self.output_dim, self.device)
                         print("Val Done!")
@@ -467,9 +473,12 @@ class NodeTask(BaseTask):
                   elif self.prompt_type =='Gprompt':
                         print("run Graph Prompt")
                         loss, center =  self.GpromptTrain(train_loader)
+                        train_acc, F1 = GpromptEva(train_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                         print("train batch Done!")
+
                         val_acc, F1 = GpromptEva(val_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                         print("val batch Done!")
+
                         test_acc, F1= GpromptEva(test_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                         print("test batch Done!")
 
@@ -491,6 +500,10 @@ class NodeTask(BaseTask):
                   elif self.prompt_type == 'MultiGprompt':
                         print("run MultiGprompt")
                         loss = self.MultiGpromptTrain(pretrain_embs, train_lbls, idx_train)
+   
+                        # 记得 open prompt
+                        prompt_feature = self.feature_prompt(self.features)
+                        train_acc, F1 = MultiGpromptEva(pretrain_embs, train_lbls, idx_train, prompt_feature, self.Preprompt, self.DownPrompt, self.sp_adj, self.output_dim, self.device)
                         print("Train Done!")
 
                         # 记得 open prompt
