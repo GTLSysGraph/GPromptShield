@@ -1,10 +1,12 @@
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
 from torch_geometric.loader import DataLoader
 from torch_geometric.data   import Data
-from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process, cmd
+import torch.utils.data as Data1
+from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process, cmd, MLP, train_MLP, get_psu_labels
 from prompt_graph.evaluation import GPPTEva, GNNNodeEva, GpromptEva, MultiGpromptEva, GPFEva, AllInOneEva, RobustPromptInductiveEva, RobustPromptTranductiveEva
-from prompt_graph.data import induced_graphs, split_induced_graphs,load4node_shot_index, load4node_attack_shot_index, load4node_attack_specified_shot_index
+from prompt_graph.data import induced_graphs, split_induced_graphs, split_induced_graphs_save_relabel_central_node, load4node_shot_index, load4node_attack_shot_index, load4node_attack_specified_shot_index
 
 
 from .task import BaseTask
@@ -17,6 +19,7 @@ import numpy as np
 import scipy.sparse as sp
 from torch_geometric.utils import to_scipy_sparse_matrix
 from tqdm import tqdm
+
 
 warnings.filterwarnings("ignore")
 
@@ -69,20 +72,18 @@ class NodeTask(BaseTask):
 
 
       def load_specified_attack_data(self):
+            data_dir_name = 'data_attack_fewshot_save_relabel_central_node'
             # 加载攻击指定数据划分后的图数据
-            self.data, self.dataset = load4node_attack_specified_shot_index(self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+            self.data, self.dataset = load4node_attack_specified_shot_index(data_dir_name, self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
             if self.prompt_type == 'MultiGprompt':
                   self.process_multigprompt_data(self.data)
             else:
                   self.input_dim = self.data.x.shape[1]
                   self.output_dim = self.dataset.num_classes
-            # print(self.data)
-            # print(self.data.train_mask.nonzero().squeeze())
-            # print("loaded specified attack data")
-            # quit()
-                  
+
+      
             if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
-                  file_dir = './data_attack_fewshot/{}/shot_{}/{}/induced_graph/{}'.format(self.dataset_name, str(self.shot_num), str(self.run_split), self.attack_method)
+                  file_dir = './{}/{}/shot_{}/{}/induced_graph/{}'.format(data_dir_name, self.dataset_name, str(self.shot_num), str(self.run_split), self.attack_method)
                   file_path = os.path.join(file_dir, 'induced_graph.pkl')
 
                   # 注意，换shot num的时候要把induced graph删掉
@@ -96,7 +97,8 @@ class NodeTask(BaseTask):
                   else:
                         os.makedirs(file_dir, exist_ok=True) 
                         print('Begin split induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
-                        split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
+                        # split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
+                        split_induced_graphs_save_relabel_central_node(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
                         with open(file_path, 'rb') as f:
                               graphs_dict = pickle.load(f)
                         self.train_dataset = graphs_dict['train_graphs']
@@ -110,6 +112,10 @@ class NodeTask(BaseTask):
 
             else:
                   self.data.to(self.device)
+
+            # from torch_geometric.utils import contains_self_loops,remove_self_loops
+            # if contains_self_loops(self.data.edge_index):
+            #       self.data.edge_index, _ = remove_self_loops(self.data.edge_index)
 
             # train_indices = self.data.train_mask.nonzero().squeeze()
             # print(train_indices)
@@ -140,7 +146,8 @@ class NodeTask(BaseTask):
                   else:
                         os.makedirs(file_dir, exist_ok=True) 
                         print('Begin split_induced_graphs.')
-                        split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
+                        # split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
+                        split_induced_graphs_save_relabel_central_node(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
                         with open(file_path, 'rb') as f:
                               graphs_dict = pickle.load(f)
                         self.train_dataset = graphs_dict['train_graphs']
@@ -318,7 +325,7 @@ class NodeTask(BaseTask):
 
 
 
-      def RobustPromptInductiveTrain(self, train_loader, remaining_loader):
+      def RobustPromptInductiveTrain(self, train_loader, remaining_loader, pseudo_model):
             #we update answering and prompt alternately.
             answer_epoch = 20  # 50 80
             prompt_epoch = 20  # 50 80
@@ -327,21 +334,21 @@ class NodeTask(BaseTask):
             self.answering.train()
             self.prompt.eval()
             for epoch in range(1, answer_epoch + 1):
-                  answer_loss = self.prompt.Tune(train_loader, remaining_loader, self.gnn,  self.answering, self.criterion, self.answer_opi, self.device)
+                  answer_loss = self.prompt.Tune(train_loader, remaining_loader, pseudo_model, self.gnn,  self.answering, self.criterion, self.answer_opi, self.device)
                   print(("frozen gnn | frozen prompt | *tune answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, answer_loss)))
 
             # tune prompt
             self.answering.eval()
             self.prompt.train()
             for epoch in range(1, prompt_epoch + 1):
-                  pg_loss = self.prompt.Tune( train_loader, remaining_loader, self.gnn, self.answering, self.criterion, self.pg_opi, self.device)
+                  pg_loss     = self.prompt.Tune(train_loader, remaining_loader, pseudo_model, self.gnn, self.answering, self.criterion, self.pg_opi, self.device)
                   print(("frozen gnn | *tune prompt |frozen answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, pg_loss)))
             
             return pg_loss
 
 
 
-      def RobustPromptTranductivetrain(self, data, iid_train, pruned_data, lambda_cmd, lambda_mse):
+      def RobustPromptTranductivetrain(self, data, idx_train_regenerate, pseudo_labels, iid_train, pruned_data, lambda_cmd, lambda_mse):
             self.prompt.train()
             self.optimizer.zero_grad() 
             # 这里要注意，和GPF不同，这里都是一个图而不是loader，所以一个epoch跑完后data.x就消失了，不能进行后向传播，要用一个新的值存储, 不能用data.x = self.prompt.add(data.x)，直接被覆盖，无法训练
@@ -349,8 +356,8 @@ class NodeTask(BaseTask):
             prompted_x = self.prompt.add(data.x)
             out       = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
 
-            # sim 关注去噪
-            out_clean = self.gnn(pruned_data.x, pruned_data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
+            # # sim 关注去噪
+            # out_clean = self.gnn(pruned_data.x, pruned_data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
             # loss_mse = F.mse_loss(out[data.train_mask], out_clean[data.train_mask])
             # loss_mse = F.mse_loss(out, out_clean)
 
@@ -358,7 +365,10 @@ class NodeTask(BaseTask):
             # loss_cmd = cmd(out[data.train_mask], out[iid_train, :])
 
             out = self.answering(out)
-            loss = self.criterion(out[data.train_mask], data.y[data.train_mask]) # + lambda_cmd * loss_cmd + lambda_mse * loss_mse
+
+            # STRG 利用重新生成的idx_train和伪标签训练
+            loss = self.criterion(out[idx_train_regenerate], pseudo_labels[idx_train_regenerate])
+            # loss = self.criterion(out[data.train_mask], data.y[data.train_mask])  #+ lambda_cmd * loss_cmd #+ lambda_mse * loss_mse
             loss.backward()  
             self.optimizer.step()
             return loss
@@ -367,17 +377,6 @@ class NodeTask(BaseTask):
 
 
       def run(self):
-            # for all-in-one and Gprompt we use k-hop subgraph
-            if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
-                  train_loader = DataLoader(self.train_dataset, batch_size=100, shuffle=True)
-                  test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
-                  val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
-                  if self.prompt_type == 'RobustPrompt_I':
-                        print("Build a remaining dataloader.")
-                        remaining_loader = DataLoader(self.remaining_dataset, batch_size=2500, shuffle=True)
-                  
-                  print("prepare induce graph data is finished!")
-
             if self.prompt_type == 'MultiGprompt':
                   # 使用预训练的GCN得到还没有加prompt的embs
                   embeds, _ = self.Preprompt.embed(self.features, self.sp_adj, True, None, False)
@@ -395,43 +394,97 @@ class NodeTask(BaseTask):
                   test_embs     = embeds[0, idx_test].type(torch.long)
 
 
-            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus']:
-                  print("Prepare distribution nodes and prune the graph...")
-                  ###############################################################
-                  # 分布
-                  # 选取测试集的节点
-                  idx_train = self.data.train_mask.nonzero().squeeze()
-                  all_idx = set(range(self.data.num_nodes)) - set(idx_train)
-                  idx_test = torch.LongTensor(list(all_idx))
-                  # method 1 : random select
-                  # perm = torch.randperm(idx_test.shape[0])
-                  # iid_train = idx_test[perm[:idx_train.shape[0]]] 
-                  # method 2 : use all 
-                  iid_train = idx_test
-                  print("select distribution nodes done!")
-                  ###############################################################
+            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus','RobustPrompt_I']:
+                  # 利用shot的标签训练一个pseudo label分类器
+                  print("don't use structure")
+                  idx_train  = self.data.train_mask.nonzero().squeeze().cpu()
+                  idx_val    = self.data.val_mask.nonzero().squeeze().cpu()
+                  idx_test    = self.data.test_mask.nonzero().squeeze().cpu()
+                  # 效仿STRG首先利用train的标签训练一个不需要结构的MLP
+                  n_hidden = 1024
+                  batch_size = 64
+                  weight_decay = 5e-4
+                  lr = 1e-2
+                  epochs = 200
+                  loss = nn.CrossEntropyLoss()
+                  k = 80
+                  # dataloaders
+                  pseudo_train_dataset = Data1.TensorDataset(self.data.x[idx_train], self.data.y[idx_train])
+                  pseudo_train_loader = Data1.DataLoader(pseudo_train_dataset, batch_size=batch_size, shuffle=True)
+                  pseudo_val_dataset = Data1.TensorDataset(self.data.x[idx_val], self.data.y[idx_val])
+                  pseudo_val_loader = Data1.DataLoader(pseudo_val_dataset, batch_size=batch_size, shuffle=False)
+                  pseudo_test_dataset = Data1.TensorDataset(self.data.x[idx_test], self.data.y[idx_test])
+                  pseudo_test_loader = Data1.DataLoader(pseudo_test_dataset, batch_size=batch_size, shuffle=False)
+                  pseudo_model = MLP(self.data.x.shape[1], self.output_dim, n_hidden)
+                  pseudo_model = pseudo_model.to(self.device)
+                  optimizer = torch.optim.Adam(pseudo_model.parameters(), lr=lr, weight_decay=weight_decay)
+                  acc = train_MLP(pseudo_model, epochs, optimizer, pseudo_train_loader, pseudo_val_loader, pseudo_test_loader, loss, self.device)
+                  print('Accuracy:%f' % acc)
+                  print('Train Pseudo Model Done !')
+                  # 对于'RobustPrompt_T','RobustPrompt_Tplus'扩展没有被扰动的部分（扩展伪标签）
+                  # 对于'RobustPrompt_I'，我们利用训练好的pseudo_model直接训练一个鲁棒的提示
+                  if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus']: # 扩展没有被扰动的部分（扩展伪标签）
+                        logits = pseudo_model(self.data.x.to(self.device)).cpu()
+                        pseudo_labels = self.data.y.clone()
+                        idx_train_regenerate, pseudo_labels = get_psu_labels(logits, pseudo_labels, idx_train, idx_test, k=k, append_idx=True) # 7 * 80 = 560 or + 70 = 630
+       
 
-                  ###############################################################
-                  # 噪声
-                  # Prune edge index
-                  edge_index = self.data.edge_index
-                  cosine_sim = F.cosine_similarity(self.data.x[edge_index[0]], self.data.x[edge_index[1]])
-                  # Define threshold t
-                  threshold = 0.2
-                  # Identify edges to keep
-                  keep_edges = cosine_sim >= threshold
-                  # Filter edge_index to only keep edges above the threshold
-                  pruned_edge_index = edge_index[:, keep_edges]
-                  pruned_data       = Data(x=self.data.x, edge_index=pruned_edge_index)
-                  print(pruned_data)
-                  print(self.data)
-                  print("prune the graph done!")
-                  ###############################################################
-                  # 对两个loss控制的超参数
-                  lambda_cmd = 0.5
-                  lambda_mse = 0.5
-                  ###############################################################
-                  # 打印一下节点周围邻居节点的标签，研究一下
+
+
+                  # print("Prepare distribution nodes and prune the graph...")
+                  # ###############################################################
+                  # # 分布
+                  # # 选取测试集的节点
+                  # idx_train = self.data.train_mask.nonzero().squeeze()
+                  # all_idx = set(range(self.data.num_nodes)) - set(idx_train)
+                  # idx_test = torch.LongTensor(list(all_idx))
+
+                  # # method 1 : random select
+                  # perm = torch.randperm(idx_test.shape[0])
+                  # # iid_train = idx_test[perm[:idx_train.shape[0]]] 
+                  # iid_train = idx_test[perm[890 : 890 + idx_train.shape[0]]] 
+                  # # method 2 : use all 
+                  # # iid_train = idx_test
+                  # print("select distribution nodes done!")
+                  # ###############################################################
+
+                  # ###############################################################
+                  # # 噪声
+                  # # Prune edge index
+                  # edge_index = self.data.edge_index
+                  # cosine_sim = F.cosine_similarity(self.data.x[edge_index[0]], self.data.x[edge_index[1]])
+                  # # Define threshold t
+                  # threshold = 0.6
+                  # # Identify edges to keep
+                  # keep_edges = cosine_sim >= threshold
+                  # # Filter edge_index to only keep edges above the threshold
+                  # pruned_edge_index = edge_index[:, keep_edges]
+                  # pruned_data       = Data(x=self.data.x, edge_index=pruned_edge_index)
+                  # print(pruned_data)
+                  # print(self.data)
+                  # print("prune the graph done!")
+                  # ###############################################################
+                  # # 对两个loss控制的超参数
+                  # lambda_cmd = 0.2
+                  # lambda_mse = 0.0
+                  # ###############################################################
+                  # # 打印一下节点周围邻居节点的标签，研究一下
+
+
+            # for all-in-one and Gprompt we use k-hop subgraph
+            if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
+                  train_loader = DataLoader(self.train_dataset, batch_size=100, shuffle=True)
+                  test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
+                  val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
+                  print(len(train_loader))
+                  print(len(val_loader))
+                  print(len(test_loader))
+                  if self.prompt_type == 'RobustPrompt_I':
+                        print("Build a remaining dataloader.")
+                        remaining_loader = DataLoader(self.remaining_dataset, batch_size=2500, shuffle=True)
+                  
+                  print("prepare induce graph data is finished!")
+
 
 
             print("run {}".format(self.prompt_type))
@@ -521,19 +574,19 @@ class NodeTask(BaseTask):
                   # 图形状的prompt
                   elif self.prompt_type == 'RobustPrompt_I':
                         print("run RobustPrompt_I")
-                        loss = self.RobustPromptInductiveTrain(train_loader, remaining_loader)
+                        loss = self.RobustPromptInductiveTrain(train_loader, remaining_loader, pseudo_model)
                         # 看下训练集的训练情况，是不是在被攻击数据上过拟合了 不用的话就注释掉
-                        train_acc, F1  = RobustPromptInductiveEva(train_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        train_acc, F1  = RobustPromptInductiveEva(train_loader, 'Train', pseudo_model, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                         print("RobustPrompt_I train batch Done!")
-                        val_acc, F1    = RobustPromptInductiveEva(val_loader,   self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        val_acc, F1    = RobustPromptInductiveEva(val_loader,    'Val',  pseudo_model, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                         print("RobustPrompt_I val batch Done!")
-                        test_acc, F1   = RobustPromptInductiveEva(test_loader,  self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        test_acc, F1   = RobustPromptInductiveEva(test_loader,  'Test',  pseudo_model, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                         print("RobustPrompt_I test batch Done!")
 
 
                   elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
                         # print("run RobustPrompt_T/RobustPrompt_TPlus Prompt")
-                        loss            = self.RobustPromptTranductivetrain(self.data, iid_train, pruned_data, lambda_cmd, lambda_mse)
+                        loss            = self.RobustPromptTranductivetrain(self.data, idx_train_regenerate, pseudo_labels, iid_train, pruned_data, lambda_cmd, lambda_mse)
                         train_acc,  F1  = RobustPromptTranductiveEva(self.data, self.data.train_mask, self.gnn, self.prompt, self.answering, self.output_dim, self.device)
                         # print("Train Done!")
                         val_acc,  F1    = RobustPromptTranductiveEva(self.data, self.data.val_mask,   self.gnn, self.prompt, self.answering, self.output_dim, self.device)

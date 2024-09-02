@@ -129,7 +129,7 @@ class BaseTask:
 
         elif self.prompt_type == 'RobustPrompt_I':
             print("start to realise RobustPrompt")
-            self.prompt = RobustPrompt_I(token_dim=self.input_dim, token_num=10, cross_prune=0.1, inner_prune=0.3).to(self.device)
+            self.prompt = RobustPrompt_I(token_dim=self.input_dim, per_graph_token_num=10, num_prompt_graph= self.output_dim, cross_prune=0.1, inner_prune=0.3).to(self.device)
         elif self.prompt_type == 'RobustPrompt_T':
             self.prompt = RobustPrompt_T(self.input_dim).to(self.device)
         elif self.prompt_type == 'RobustPrompt_Tplus':

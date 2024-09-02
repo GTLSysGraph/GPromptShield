@@ -236,17 +236,17 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
 
 
 
-def load4node_attack_specified_shot_index(dataname, attack_method, shot_num= 10, run_split = 1):
+def load4node_attack_specified_shot_index(data_dir_name, dataname, attack_method, shot_num= 10, run_split = 1):
     assert dataname in ['Cora', 'CiteSeer', 'PubMed', 'ogbn-arxiv'], 'Currently, attacks are only supported for the specified datasets.'
 
     atk_type   = attack_method.split('-')[0]
     atk_ptb    = attack_method.split('-')[1]
-    index_path = './data_attack_fewshot/{}/shot_{}/{}/index'.format(dataname, str(shot_num), str(run_split))
+    index_path = './{}/{}/shot_{}/{}/index'.format(data_dir_name, dataname, str(shot_num), str(run_split))
     # 首先判断在指定的shot和split下是否存在index
 
-    # 如果存在index，就表示能够根据指定的划分生成攻击后的数据
+    # 如果存在index，就表示能够根据指定的划分加载攻击后的数据
     if os.path.exists(index_path):
-        path       = osp.expanduser('/home/songsh/MyPrompt/data_attack_fewshot/{}/shot_{}/{}/'.format(dataname, shot_num, run_split))
+        path       = osp.expanduser('/home/songsh/MyPrompt/{}/{}/shot_{}/{}/'.format(data_dir_name, dataname, shot_num, run_split))
         dataset    = AttackDataset_specified(root = path, name = 'Attack-' + dataname,  attackmethod = atk_type, ptb_rate=atk_ptb) # , transform=T.NormalizeFeatures()
         data = dataset[0]
         # 判断一下被攻击数据的划分方式是否和index_path当中存的划分一样，训练集即可
@@ -284,7 +284,7 @@ def load4node_attack_specified_shot_index(dataname, attack_method, shot_num= 10,
 
     else:
         print("Index for the specified shot and run split does not exist. Generating......")
-        path_default = osp.expanduser('/home/songsh/MyPrompt/data_attack_fewshot/{}/default/'.format(dataname))
+        path_default = osp.expanduser('/home/songsh/MyPrompt/{}/{}/default/'.format(data_dir_name, dataname))
         dataset      = AttackDataset_specified(root = path_default, name = 'Attack-' + dataname,  attackmethod = atk_type, ptb_rate=0.0) # , transform=T.NormalizeFeatures()
 
         data = dataset[0]  # Get the first graph object.

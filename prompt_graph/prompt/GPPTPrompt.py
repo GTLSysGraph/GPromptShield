@@ -71,7 +71,7 @@ class GPPTPrompt(torch.nn.Module):
     
     def update_StructureToken_weight(self, h):
         if h.size(0)>20000:
-            cluster_ids_x, cluster_centers = kmeans(X=h, num_clusters=self.center_num, distance='euclidean', device=self.device)
+            cluster_ids_x, cluster_centers = KMeans(X=h, num_clusters=self.center_num, distance='euclidean', device=self.device)
             self.StructureToken.weight.data = cluster_centers.clone()
         else:
             cluster = KMeans(n_clusters=self.center_num,random_state=0).fit(h.detach().cpu())

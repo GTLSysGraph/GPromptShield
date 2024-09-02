@@ -1,7 +1,7 @@
 import torchmetrics
 import torch
 
-def RobustPromptInductiveEva(loader, prompt, gnn, answering, num_class, device):
+def RobustPromptInductiveEva(loader, tag, pseudo_model, prompt, gnn, answering, num_class, device):
         prompt.eval()
         answering.eval()
         accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_class).to(device)
@@ -18,9 +18,18 @@ def RobustPromptInductiveEva(loader, prompt, gnn, answering, num_class, device):
 
         for batch_id, batch in enumerate(loader): 
             batch = batch.to(device) 
-            prompted_graph = prompt.add_robust_prompt(batch)
 
-            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt')
+            # idea 1
+            prompted_graph, num_nodes_induced_graphs, num_nodes_prompt_graphs = prompt(batch, pseudo_model)
+
+            # idea 2
+            # prompted_graph = prompt.add_robust_prompt(batch)
+
+            # raw
+            # prompted_graph = batch
+
+    
+            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt_I')
 
             # print(graph_emb)
             pre = answering(graph_emb)
@@ -29,7 +38,7 @@ def RobustPromptInductiveEva(loader, prompt, gnn, answering, num_class, device):
             
             acc = accuracy(pred, batch.y)
             ma_f1 = macro_f1(pred, batch.y)
-            print("Batch {} Acc: {:.4f} | Macro-F1: {:.4f}".format(batch_id, acc.item(), ma_f1.item()))
+            print("{} Batch {} Acc: {:.4f} | Macro-F1: {:.4f}".format(tag, batch_id, acc.item(), ma_f1.item()))
 
         acc = accuracy.compute()
         ma_f1 = macro_f1.compute()
