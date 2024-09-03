@@ -127,6 +127,7 @@ class RobustPrompt_I(LightPrompt):
         pruned_graph_list = []
         prompt_graph_list = []
 
+
         for g in Batch.to_data_list(graph_batch):
 
             # 我们假定预训练过程中用到的数据集是干净的，但是在下游任务上的图是被攻击或扰动的，因此可以认为预训练得到的模型在干净图上具有很好的效果
@@ -181,9 +182,11 @@ class RobustPrompt_I(LightPrompt):
             ##################################################
             # g.relabel_central_index
             cluster_y_pred = torch.argmax(pseudo_model(g.x), dim=1)
-            print(cluster_y_pred[g.relabel_central_index])
-            print(g.y)
-            quit()
+            cluster_y_pred = cluster_y_pred.detach()
+            # print(cluster_y_pred[g.relabel_central_index])
+            # print(g.y)
+            # quit()
+
             # cluster_y_pred, cluster_centers = kmeans(X=g.x, num_clusters=self.num_prompt_graph, distance='euclidean', device=torch.device('cuda')) # 手动关闭了tqdm
             # cluster_y_pred = torch.tensor(KMeans(n_clusters=self.num_prompt_graph, random_state=0).fit_predict(g.x.detach().cpu()))
             # cluster_y_pred = torch.ones(g.x.shape[0])
@@ -335,6 +338,32 @@ class RobustPrompt_I(LightPrompt):
             running_loss += train_loss.item()
         return running_loss / len(train_loader)
     
+
+    def TuneKnowledgeDistillation(self, train_loader, pseudo_model, pseudo_logits_train, gnn, answering, lossfn, opi, device):
+        running_loss = 0.
+        for batch_id, train_batch in enumerate(train_loader): 
+            train_batch = train_batch.to(device)
+            prompted_graph, num_nodes_induced_graphs, num_nodes_prompt_graphs = self.forward(train_batch, pseudo_model)
+            prompt_node_emb, prompt_graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch, prompt_type = 'RobustPrompt_I')       
+
+            pre = answering(prompt_graph_emb)
+            # loss_ce = lossfn(pre, train_batch.y)
+            loss_ce = lossfn(pre, torch.argmax(pseudo_logits_train, dim=1))
+            
+            # KL散度，知识蒸馏
+            temperature = 0.9
+            alpha = 0.99
+            pseudo_logits_train = pseudo_logits_train.detach()
+            loss_kl = torch.nn.KLDivLoss()(F.log_softmax(pre / temperature, dim=1), F.softmax(pseudo_logits_train / temperature, dim=1)) 
+            loss = (1 - alpha) * loss_ce + alpha * loss_kl
+            print(loss)
+
+            opi.zero_grad()
+            loss.backward()
+            opi.step()
+            running_loss += loss.item()
+        return running_loss / len(train_loader)
+
 
 
 

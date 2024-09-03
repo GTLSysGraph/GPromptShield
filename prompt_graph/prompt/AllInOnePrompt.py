@@ -103,12 +103,7 @@ class HeavyPrompt(LightPrompt):
         for batch_id, train_batch in enumerate(train_loader):  
             train_batch = train_batch.to(device)
             prompted_graph = self.forward(train_batch)
-            # print(len(prompted_graph))  35
-            # print(prompted_graph)
-            
             graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch)
-            # print(graph_emb.shape)
-            # print(len(prompted_graph.batch))
             pre = answering(graph_emb)
             train_loss = lossfn(pre, train_batch.y)
 
@@ -116,9 +111,34 @@ class HeavyPrompt(LightPrompt):
             train_loss.backward()
             opi.step()
             running_loss += train_loss.item()
-
         return running_loss / len(train_loader)
     
+    # 分开更新prompt和answer没有效果，感觉应该还是要一起调整才可以
+    # def TuneKnowledgeDistillation(self, train_loader, pseudo_logits_train, gnn, answering, lossfn, opi, device):
+    #     running_loss = 0.
+    #     for batch_id, train_batch in enumerate(train_loader):  
+    #         train_batch = train_batch.to(device)
+    #         prompted_graph = self.forward(train_batch)
+    #         graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch)
+    #         pre = answering(graph_emb)
+    #         # loss_ce = lossfn(pre, train_batch.y)
+    #         loss_ce = lossfn(pre, torch.argmax(pseudo_logits_train, dim=1))
+            
+    #         # KL散度，知识蒸馏
+    #         temperature = 0.9
+    #         alpha = 0.99
+    #         pseudo_logits_train = pseudo_logits_train.detach()
+    #         loss_kl = torch.nn.KLDivLoss()(F.log_softmax(pre / temperature, dim=1), F.softmax(pseudo_logits_train / temperature, dim=1)) 
+    #         loss = (1 - alpha) * loss_ce + alpha * loss_kl
+
+    #         opi.zero_grad()
+    #         loss.backward()
+    #         opi.step()
+    #         running_loss += loss.item()
+    #     return running_loss / len(train_loader)
+
+
+
     def TuneWithoutAnswering(self, train_loader, gnn, answering, lossfn, opi, device):
         total_loss = 0.0 
         for batch in train_loader:

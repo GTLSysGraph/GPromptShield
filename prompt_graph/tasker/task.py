@@ -45,10 +45,18 @@ class BaseTask:
         
         
         # add by ssh
-        elif self.prompt_type == 'RobustPrompt_I':
-            self.pg_opi = optim.Adam(filter(lambda p: p.requires_grad, self.prompt.parameters()), lr=0.001, weight_decay= 0.00001)
-            self.answer_opi = optim.Adam(filter(lambda p: p.requires_grad, self.answering.parameters()), lr=0.001, weight_decay= 0.00001)
-            print('consider add robust regularization and optimizing strategy')
+        # 两种训练优化方式 
+        # prompt和anwser头一起优化，为了使用知识蒸馏训练，维度对齐
+        elif self.prompt_type == 'RobustPrompt_I':    
+            model_param_group = []
+            model_param_group.append({"params": self.prompt.parameters()})
+            model_param_group.append({"params": self.answering.parameters()})
+            self.optimizer = optim.Adam(model_param_group, lr=0.001, weight_decay=5e-4)
+        # prompt和anwser头分开优化
+        # elif self.prompt_type == 'RobustPrompt_I':
+        #     self.pg_opi = optim.Adam(filter(lambda p: p.requires_grad, self.prompt.parameters()), lr=0.001, weight_decay= 0.00001)
+        #     self.answer_opi = optim.Adam(filter(lambda p: p.requires_grad, self.answering.parameters()), lr=0.001, weight_decay= 0.00001)
+        #     print('consider add robust regularization and optimizing strategy')
         elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
             model_param_group = []
             model_param_group.append({"params": self.prompt.parameters()})
