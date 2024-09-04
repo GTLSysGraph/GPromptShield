@@ -32,7 +32,8 @@ def get_args():
     parser.add_argument('--JK', type=str, default="last",
                         help='How the node features across layers are combined. last, sum, max or concat')
 
-    parser.add_argument('--seed', type=int, default=42, help = "Seed for splitting dataset.")
+    # parser.add_argument('--seed', type=int, default=42, help = "Seed for splitting dataset.")
+    parser.add_argument('--seed', nargs='+', type=int, help = "Seed for splitting dataset.")
     parser.add_argument('--run_split', nargs='+', type=int, help= "run split num")
     # parser.add_argument('--run_split', type=int, help= "run split num")
 

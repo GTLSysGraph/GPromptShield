@@ -30,14 +30,7 @@ class NodeTask(BaseTask):
 
             if self.attack_downstream:
                   assert self.attack_method != 'None', 'No specific attacks were designated.'
-                  if self.specified:
-                        # 对指定的train/val/test划分方式进行攻击，因为一些方法对不同的划分会产生不同的分布
-                        print("load LLC or attacked data with specified split")
-                        self.load_specified_attack_data()
-                  else:
-                        # 对默认的train/val/test划分方式进行攻击
-                        print('load LLC or attacked data with default split')
-                        self.load_attack_data()
+                  self.load_shot_attack_data()
             else:
                   print('load raw data')
                   self.load_data()
@@ -71,17 +64,26 @@ class NodeTask(BaseTask):
             print("feature",features.shape)
 
 
-      def load_specified_attack_data(self):
-            data_dir_name = 'data_attack_fewshot' # _save_relabel_central_node
-            # 加载攻击指定数据划分后的图数据
-            self.data, self.dataset = load4node_attack_specified_shot_index(data_dir_name, self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+
+      def load_shot_attack_data(self):
+            if self.specified:
+                  # 对指定的train/val/test划分方式进行攻击，因为一些方法对不同的划分会产生不同的分布
+                  print("load LLC or attacked data with specified split")
+                  data_dir_name = 'data_attack_fewshot' # _save_relabel_central_node
+                  self.data, self.dataset = load4node_attack_specified_shot_index(data_dir_name, self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+            else:
+                  # 已经存在对默认的train/val/test划分方式进行攻击的数据集，从默认数据集中的train中提取不同shot的index
+                  print('load LLC or attacked shot data with default split')
+                  data_dir_name = 'data_attack_from_default_split' 
+                  self.data, self.dataset = load4node_attack_shot_index(data_dir_name, self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+
+
             if self.prompt_type == 'MultiGprompt':
                   self.process_multigprompt_data(self.data)
             else:
                   self.input_dim = self.data.x.shape[1]
                   self.output_dim = self.dataset.num_classes
 
-      
             if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
                   file_dir = './{}/{}/shot_{}/{}/induced_graph/{}'.format(data_dir_name, self.dataset_name, str(self.shot_num), str(self.run_split), self.attack_method)
                   file_path = os.path.join(file_dir, 'induced_graph.pkl')
@@ -97,55 +99,6 @@ class NodeTask(BaseTask):
                   else:
                         os.makedirs(file_dir, exist_ok=True) 
                         print('Begin split induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
-                        # split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
-                        split_induced_graphs_save_relabel_central_node(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
-                        with open(file_path, 'rb') as f:
-                              graphs_dict = pickle.load(f)
-                        self.train_dataset = graphs_dict['train_graphs']
-                        self.test_dataset = graphs_dict['test_graphs']
-                        self.val_dataset = graphs_dict['val_graphs']
-                  
-                  # add by ssh 把除了训练集induced graph之外的图作为一个remaining dataset,为了讨论分布的一致问题
-                  if self.prompt_type == 'RobustPrompt_I':
-                        print("Combine the val and the test dataset to study the distribution shift problem! ")
-                        self.remaining_dataset = self.val_dataset + self.test_dataset
-
-            else:
-                  self.data.to(self.device)
-
-            # from torch_geometric.utils import contains_self_loops,remove_self_loops
-            # if contains_self_loops(self.data.edge_index):
-            #       self.data.edge_index, _ = remove_self_loops(self.data.edge_index)
-
-            # train_indices = self.data.train_mask.nonzero().squeeze()
-            # print(train_indices)
-            # print(self.data.y[train_indices])
-            # quit()
-
-      def load_attack_data(self):
-            # 加载默认数据划分攻击后的图数据
-            self.data, self.dataset = load4node_attack_shot_index(self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
-            
-            if self.prompt_type == 'MultiGprompt':
-                  self.process_multigprompt_data(self.data)
-            else:
-                  self.input_dim = self.data.x.shape[1]
-                  self.output_dim = self.dataset.num_classes
-
-            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
-                  file_dir = './data_attack/{}/{}/induced_graph/shot_{}/{}'.format(self.dataset_name, self.attack_method, str(self.shot_num), str(self.run_split))
-                  file_path = os.path.join(file_dir, 'induced_graph.pkl')
-
-                  # 注意，换shot num的时候要把induced graph删掉
-                  if os.path.exists(file_path):
-                        with open(file_path, 'rb') as f:
-                              graphs_dict = pickle.load(f)
-                        self.train_dataset = graphs_dict['train_graphs']
-                        self.test_dataset = graphs_dict['test_graphs']
-                        self.val_dataset = graphs_dict['val_graphs']
-                  else:
-                        os.makedirs(file_dir, exist_ok=True) 
-                        print('Begin split_induced_graphs.')
                         # split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
                         split_induced_graphs_save_relabel_central_node(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
                         with open(file_path, 'rb') as f:
@@ -453,7 +406,7 @@ class NodeTask(BaseTask):
                   test_embs     = embeds[0, idx_test].type(torch.long)
 
 
-            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus','RobustPrompt_I','All-in-one','GPF']:
+            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus','RobustPrompt_I','All-in-one']: #,'GPF'
                   # 利用shot的标签训练一个pseudo label分类器
                   print("don't use structure")
                   idx_train  = self.data.train_mask.nonzero().squeeze().cpu()
@@ -709,8 +662,8 @@ class NodeTask(BaseTask):
                         loss, center =  self.GpromptTrain(train_loader)
                         # val_acc, F1 = GpromptEva(val_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                   elif self.prompt_type in ['GPF', 'GPF-plus']:
-                        # loss = self.GPFTrain(train_loader)         
-                        loss = self.GPFTrain_Shield(train_loader, pseudo_logits_train)      
+                        loss = self.GPFTrain(train_loader)         
+                        # loss = self.GPFTrain_Shield(train_loader, pseudo_logits_train)      
                         # val_acc, F1 = GPFEva(val_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)                                             
                   elif self.prompt_type == 'MultiGprompt':
                         loss = self.MultiGpromptTrain(pretrain_embs, train_lbls, idx_train)
@@ -744,7 +697,6 @@ class NodeTask(BaseTask):
             import math
             if not math.isnan(loss):
                   batch_best_loss.append(loss)
-
                   if self.prompt_type == 'None':
                         test_acc, F1   = GNNNodeEva(self.data, idx_test, self.gnn, self.answering,self.output_dim, self.device)          
                   elif self.prompt_type == 'All-in-one':

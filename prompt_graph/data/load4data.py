@@ -102,7 +102,7 @@ def load4graph(dataset_name, shot_num= 10, num_parts=None):
 
 
 
-def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split = 1):
+def load4node_attack_shot_index(data_dir_name, dataname, attack_method, shot_num, run_split):
     assert dataname in ['Cora', 'CiteSeer', 'PubMed', 'ogbn-arxiv'], 'Currently, attacks are only supported for the specified datasets.'
     atk_type   = attack_method.split('-')[0]
     atk_ptb    = attack_method.split('-')[1]
@@ -141,7 +141,9 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
     val_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
     
     # 这个是随机的取shot方法，这里可以优化一下，因为不同的shot对结果的影响很大，尤其是数据集被攻击的情况下
-    index_path = './data_attack/{}/{}/index/shot_{}/{}'.format(dataname, attack_method, str(shot_num), str(run_split))
+    # index_path = './{}/{}/{}/index/shot_{}/{}'.format(data_dir_name,dataname, attack_method, str(shot_num), str(run_split))
+
+    index_path = './{}/{}/shot_{}/{}/index'.format(data_dir_name, dataname, str(shot_num), str(run_split))
 
     if os.path.exists(index_path):
         train_indices  = torch.load(index_path + '/train_idx.pt').type(torch.long)
@@ -169,34 +171,73 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
         whole_val_idx   = []
         whole_test_idx  = []
         labels = data.y
+
         # 注意！ seed一样的情况下，不管什么run_split都是一样的！要获得不同的run_split要同时改变seed！
+        ############################################################################################################################################
+        # 从训练集中取shot
+        train_indices = data.train_mask.nonzero().squeeze(-1)
+        train_labels  = data.y[train_indices]
         for label in data.y.unique():
-                label_indices = (data.y == label).nonzero(as_tuple=False).view(-1)
+            train_indices_specified_label_index =  torch.nonzero(train_labels == label).squeeze(-1)
+            if len(train_indices_specified_label_index) != 0:
+                train_indices_specified_label = train_indices[train_indices_specified_label_index]
+            # 有可能存在train当中不存在标签的情况，但很少, 这种情况从所有的标签中找
+            else:
+                print("Indexes with label {} do not exist in the training set, take them from the entire dataset.".format(label))
+                train_indices_specified_label = (data.y == label).nonzero(as_tuple=False).view(-1)
 
-                # if len(label_indices) < 3 * shot_num:
-                #     raise ValueError(f"类别 {label.item()} 的样本数不足以分配到训练集、测试集和验证集。")
+            train_indices_specified_label = train_indices_specified_label[torch.randperm(len(train_indices_specified_label))]
+            train_indices_specified_label = train_indices_specified_label[:shot_num]
+            train_mask[train_indices_specified_label] = True
+            
+            whole_train_idx.extend(train_indices_specified_label.numpy())
 
-                label_indices = label_indices[torch.randperm(len(label_indices))]
-                train_indices = label_indices[:shot_num]
-                train_mask[train_indices] = True
+        # 得到了训练集的shot 索引，从剩下的索引中按比例划分val和test
+        remaining_indices = torch.nonzero(train_mask == False).squeeze(-1)
+        remaining_indices = remaining_indices[torch.randperm(len(remaining_indices))]
+        split_point = int(len(remaining_indices) * 0.1)
 
-                remaining_indices = label_indices[shot_num:]
-                split_point = int(len(remaining_indices) * 0.1)  # 验证集占剩余的10%
+        val_indices = remaining_indices[:split_point]
+        test_indices = remaining_indices[split_point:]
+
+        val_mask[val_indices] = True
+        test_mask[test_indices] = True
+
+        whole_val_idx.extend(val_indices.numpy())
+        whole_test_idx.extend(test_indices.numpy())
+        ############################################################################################################################################
+
+        ############################################################################################################################################
+        # # 从全部的数据中取shot
+        # for label in data.y.unique():
+        #         label_indices = (data.y == label).nonzero(as_tuple=False).view(-1)
+
+        #         # if len(label_indices) < 3 * shot_num:
+        #         #     raise ValueError(f"类别 {label.item()} 的样本数不足以分配到训练集、测试集和验证集。")
+
+        #         label_indices = label_indices[torch.randperm(len(label_indices))]
+        #         train_indices = label_indices[:shot_num]
+        #         train_mask[train_indices] = True
+
+        #         remaining_indices = label_indices[shot_num:]
+        #         split_point = int(len(remaining_indices) * 0.1)  # 验证集占剩余的10%
                 
-                val_indices = remaining_indices[:split_point]
-                test_indices = remaining_indices[split_point:]
+        #         val_indices = remaining_indices[:split_point]
+        #         test_indices = remaining_indices[split_point:]
 
-                val_mask[val_indices] = True
-                test_mask[test_indices] = True
+        #         val_mask[val_indices] = True
+        #         test_mask[test_indices] = True
 
-                whole_train_idx.extend(train_indices.numpy())
-                whole_val_idx.extend(val_indices.numpy())
-                whole_test_idx.extend(test_indices.numpy())
+        #         whole_train_idx.extend(train_indices.numpy())
+        #         whole_val_idx.extend(val_indices.numpy())
+        #         whole_test_idx.extend(test_indices.numpy())
+        ############################################################################################################################################
+                
 
         whole_train_idx  = torch.tensor(whole_train_idx)
         whole_val_idx    = torch.tensor(whole_val_idx)
         whole_test_idx   = torch.tensor(whole_test_idx)
-
+        
         # shuffled_train_indices = torch.randperm(whole_train_idx.size(0))
         # whole_train_idx = whole_train_idx[shuffled_train_indices]
         whole_train_labels = labels[whole_train_idx]
@@ -208,6 +249,9 @@ def load4node_attack_shot_index(dataname, attack_method, shot_num= 10, run_split
         # shuffled_test_indices = torch.randperm(whole_test_idx.size(0))
         # whole_test_idx = whole_test_idx[shuffled_test_indices]
         whole_test_labels = labels[whole_test_idx]
+
+
+
 
         # 保存文件
         torch.save(whole_train_idx, os.path.join(index_path, 'train_idx.pt'))
