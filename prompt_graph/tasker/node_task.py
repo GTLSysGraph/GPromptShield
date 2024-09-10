@@ -172,6 +172,8 @@ class NodeTask(BaseTask):
             return loss.item()
  
       #####################################################################################################################################################
+      #####################################################################################################################################################
+      #####################################################################################################################################################
       def AllInOneTrainSynchro(self, train_loader):
             self.prompt.train()
             self.answering.train()
@@ -224,6 +226,8 @@ class NodeTask(BaseTask):
             
             return pg_loss
       #####################################################################################################################################################
+      #####################################################################################################################################################
+      #####################################################################################################################################################
 
 
 
@@ -242,8 +246,16 @@ class NodeTask(BaseTask):
             loss.backward(retain_graph=True)
             self.optimizer.step()
             return loss.item()
+      
 
 
+
+
+
+
+
+      #####################################################################################################################################################
+      #####################################################################################################################################################
       #####################################################################################################################################################
       def GPFTrain_Shield(self, train_loader, pseudo_logits_train):
             self.prompt.train()
@@ -278,14 +290,12 @@ class NodeTask(BaseTask):
             self.answering.train()
             total_loss = 0.0 
             for batch in train_loader:  
-                  print(len(batch)) # 通过这个判断感觉在inductive上是无效的，还是应该从局部上进行考虑
-                  quit()
                   self.optimizer.zero_grad() 
                   batch = batch.to(self.device)
                   batch.x = self.prompt.add(batch.x)
                   out = self.gnn(batch.x, batch.edge_index, batch.batch, prompt = self.prompt, prompt_type = self.prompt_type)
                   out = self.answering(out)
-                  # loss = self.criterion(out, batch.pseudo_label)  
+                  # loss = self.criterion(out, batch.pseudo_label)  # 没有效果，看来inductive任务是不可行的，还是得从图处理的角度去考虑
                   loss = self.criterion(out, batch.y)  
                   loss.backward()  
                   self.optimizer.step()  
@@ -302,6 +312,9 @@ class NodeTask(BaseTask):
             loss.backward()  
             self.optimizer.step()
             return loss
+      
+      #####################################################################################################################################################
+      #####################################################################################################################################################
       #####################################################################################################################################################
 
 
@@ -432,7 +445,7 @@ class NodeTask(BaseTask):
                   test_embs     = embeds[0, idx_test].type(torch.long)
 
 
-            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus','RobustPrompt_I','All-in-one']: #,'GPF'，'All-in-one',
+            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus','RobustPrompt_I','All-in-one','GPF']: #,'GPF'，'All-in-one',
                   # 利用shot的标签训练一个pseudo label分类器
                   print("don't use structure")
                   idx_train  = self.data.train_mask.nonzero().squeeze().cpu()
@@ -445,7 +458,7 @@ class NodeTask(BaseTask):
                   lr = 1e-2
                   epochs = 200
                   loss = nn.CrossEntropyLoss()
-                  k = 60 # 80
+                  k = 80 # 80
                   # dataloaders
                   pseudo_train_dataset = Data1.TensorDataset(self.data.x[idx_train], self.data.y[idx_train])
                   pseudo_train_loader = Data1.DataLoader(pseudo_train_dataset, batch_size=batch_size, shuffle=True)
@@ -527,7 +540,7 @@ class NodeTask(BaseTask):
 
             # for all-in-one and Gprompt we use k-hop subgraph
             if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
-                  if self.prompt_type in ['All-in-one']:
+                  if self.prompt_type in ['All-in-one','GPF']:
                         # pass
                         print("Build a regenerate train dataloader")
                         self.whole_dataset = self.train_dataset + self.val_dataset + self.test_dataset
@@ -541,7 +554,7 @@ class NodeTask(BaseTask):
                         for i in idx_train_regenerate:
                               self.whole_dataset[i].pseudo_label = pseudo_labels[i].long().item() # 加item！！！！！！要不会报错！啊啊啊啊啊啊啊啊啊啊啊啊
                               self.regenerate_train_dataset.append(self.whole_dataset[i])
-                        regenerate_train_loader = DataLoader(self.regenerate_train_dataset, batch_size=100, shuffle=True)
+                        regenerate_train_loader = DataLoader(self.regenerate_train_dataset, batch_size=800, shuffle=True)
 
 
 
@@ -725,7 +738,7 @@ class NodeTask(BaseTask):
                         loss, center =  self.GpromptTrain(train_loader)
                         # val_acc, F1 = GpromptEva(val_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                   elif self.prompt_type in ['GPF', 'GPF-plus']:
-                        loss = self.GPFTrain(train_loader)         
+                        loss = self.GPFTrain(regenerate_train_loader)         
                         # loss = self.GPFTrain_Shield(train_loader, pseudo_logits_train)      
                         # val_acc, F1 = GPFEva(val_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)                                             
                   elif self.prompt_type == 'MultiGprompt':
