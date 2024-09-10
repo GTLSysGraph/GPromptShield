@@ -17,7 +17,7 @@ from torch_geometric.transforms import SVDFeatureReduction
 from torch_geometric.data import Data,Batch
 from ogb.graphproppred import PygGraphPropPredDataset
 
-from data_attack_fewshot.attackdata_specified import AttackDataset_specified
+from data_attack_fewshot_save_relabel_central_node.attackdata_specified import AttackDataset_specified
 from data_pyg.data_pyg import get_dataset
 import os.path as osp
 
@@ -287,7 +287,6 @@ def load4node_attack_specified_shot_index(data_dir_name, dataname, attack_method
     atk_ptb    = attack_method.split('-')[1]
     index_path = './{}/{}/shot_{}/{}/index'.format(data_dir_name, dataname, str(shot_num), str(run_split))
     # 首先判断在指定的shot和split下是否存在index
-
     # 如果存在index，就表示能够根据指定的划分加载攻击后的数据
     if os.path.exists(index_path):
         path       = osp.expanduser('/home/songsh/MyPrompt/{}/{}/shot_{}/{}/'.format(data_dir_name, dataname, shot_num, run_split))
@@ -295,7 +294,7 @@ def load4node_attack_specified_shot_index(data_dir_name, dataname, attack_method
         data = dataset[0]
         # 判断一下被攻击数据的划分方式是否和index_path当中存的划分一样，训练集即可
         train_indices        = torch.load(index_path + '/train_idx.pt').type(torch.long)
-        attack_train_indices = data.train_mask.nonzero().squeeze()
+        attack_train_indices = data.train_mask.nonzero().squeeze().cpu()
         # 对两个tensor进行排序
         sorted_train_indices = torch.sort(train_indices).values
         sorted_attack_train_indices = torch.sort(attack_train_indices).values
@@ -328,9 +327,11 @@ def load4node_attack_specified_shot_index(data_dir_name, dataname, attack_method
 
     else:
         print("Index for the specified shot and run split does not exist. Generating......")
-        path_default = osp.expanduser('/home/songsh/MyPrompt/{}/{}/default/'.format(data_dir_name, dataname))
-        dataset      = AttackDataset_specified(root = path_default, name = 'Attack-' + dataname,  attackmethod = atk_type, ptb_rate=0.0) # , transform=T.NormalizeFeatures()
-
+        path_default = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data/')
+        # dataset      = AttackDataset_specified(root = path_default, name = 'Attack-' + dataname,  attackmethod = atk_type, ptb_rate=0.0) # , transform=T.NormalizeFeatures()
+        # dataset      = AttackDataset(root = path_default, name = 'Attack-' + dataname, attackmethod = atk_type, ptb_rate=0.0) # , transform=T.NormalizeFeatures()
+        dataset      = get_dataset(path_default, 'Attack-' + dataname, atk_type, 0.0)
+        
         data = dataset[0]  # Get the first graph object.
         # 表示在指定的shot和split下不存在已经生成的索引，所以要根据默认的数据集自己生成并存放的index当中
 

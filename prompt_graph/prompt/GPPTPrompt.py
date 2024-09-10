@@ -103,10 +103,10 @@ class GPPTPrompt(torch.nn.Module):
         h = conv(h, edge_index)
         self.fea = h 
 
-        out = self.StructureToken(h)
+        out = self.StructureToken(h) # 结构token，对应的论文中 公式（5）
         index = torch.argmax(out, dim=1)
         out = torch.FloatTensor(h.shape[0],self.n_classes).to(device)
         for i in range(self.center_num):
-            out[index==i]=self.TaskToken[i](h[index==i])
+            out[index==i]=self.TaskToken[i](h[index==i]) # 任务token
         return out
     

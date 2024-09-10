@@ -2,3 +2,4 @@ data*
 /pre_trained_model
 __pycache__
 test*
+logs

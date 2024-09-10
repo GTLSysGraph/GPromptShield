@@ -105,7 +105,9 @@ class HeavyPrompt(LightPrompt):
             prompted_graph = self.forward(train_batch)
             graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch)
             pre = answering(graph_emb)
+
             train_loss = lossfn(pre, train_batch.y)
+            # train_loss = lossfn(pre, train_batch.pseudo_label)
 
             opi.zero_grad()
             train_loss.backward()
@@ -113,29 +115,38 @@ class HeavyPrompt(LightPrompt):
             running_loss += train_loss.item()
         return running_loss / len(train_loader)
     
-    # 分开更新prompt和answer没有效果，感觉应该还是要一起调整才可以
-    # def TuneKnowledgeDistillation(self, train_loader, pseudo_logits_train, gnn, answering, lossfn, opi, device):
-    #     running_loss = 0.
-    #     for batch_id, train_batch in enumerate(train_loader):  
-    #         train_batch = train_batch.to(device)
-    #         prompted_graph = self.forward(train_batch)
-    #         graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch)
-    #         pre = answering(graph_emb)
-    #         # loss_ce = lossfn(pre, train_batch.y)
-    #         loss_ce = lossfn(pre, torch.argmax(pseudo_logits_train, dim=1))
-            
-    #         # KL散度，知识蒸馏
-    #         temperature = 0.9
-    #         alpha = 0.99
-    #         pseudo_logits_train = pseudo_logits_train.detach()
-    #         loss_kl = torch.nn.KLDivLoss()(F.log_softmax(pre / temperature, dim=1), F.softmax(pseudo_logits_train / temperature, dim=1)) 
-    #         loss = (1 - alpha) * loss_ce + alpha * loss_kl
 
-    #         opi.zero_grad()
-    #         loss.backward()
-    #         opi.step()
-    #         running_loss += loss.item()
-    #     return running_loss / len(train_loader)
+    # 分开更新prompt和answer没有效果，感觉应该还是要一起调整才可以
+    def TuneKnowledgeDistillation(self, train_loader, pseudo_logits_train, gnn, answering, lossfn, opi, device):
+        running_loss = 0.
+        for batch_id, train_batch in enumerate(train_loader):  
+            train_batch = train_batch.to(device)
+            prompted_graph = self.forward(train_batch)
+            graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch)
+            pre = answering(graph_emb)
+
+            # print(train_batch.y)
+            # print(torch.argmax(pseudo_logits_train, dim=1))
+            # true_predict = train_batch.y == torch.argmax(pseudo_logits_train, dim=1)
+            # print(true_predict)
+            # print(sum(true_predict))
+            # quit()
+
+            # loss_ce = lossfn(pre, train_batch.y)
+            loss_ce = lossfn(pre, torch.argmax(pseudo_logits_train, dim=1))
+            
+            # KL散度，知识蒸馏
+            temperature = 1.0
+            alpha = 0.8
+            pseudo_logits_train = pseudo_logits_train.detach()
+            loss_kl = torch.nn.KLDivLoss()(F.log_softmax(pre / temperature, dim=1), F.softmax(pseudo_logits_train / temperature, dim=1)) 
+            loss = (1 - alpha) * loss_ce + alpha * loss_kl
+
+            opi.zero_grad()
+            loss.backward()
+            opi.step()
+            running_loss += loss.item()
+        return running_loss / len(train_loader)
 
 
 

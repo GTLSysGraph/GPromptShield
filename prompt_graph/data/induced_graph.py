@@ -117,7 +117,7 @@ def split_induced_graphs(name, data, file_path, smallest_size=10, largest_size=3
 
 
 # add by ssh
-def split_induced_graphs_save_relabel_central_node(name, data, file_path, smallest_size=10, largest_size=30):
+def split_induced_graphs_save_relabel_central_node_and_raw_index(name, data, file_path, smallest_size=10, largest_size=30):
     
     train_graphs = []
     test_graphs = []
@@ -157,7 +157,7 @@ def split_induced_graphs_save_relabel_central_node(name, data, file_path, smalle
 
         x = data.x[subset]
 
-        induced_graph = Data(x=x, edge_index=sub_edge_index, y=current_label, relabel_central_index= relabel_center_index)
+        induced_graph = Data(x=x, edge_index=sub_edge_index, y=current_label, relabel_central_index= relabel_center_index, raw_index = index, pseudo_label=-1)
         # print(index+100)
         # 检查节点子图是否在训练集、测试集或验证集中
         if (data.train_mask[index]):
