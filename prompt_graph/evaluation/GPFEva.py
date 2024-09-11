@@ -1,7 +1,10 @@
 import torchmetrics
 import torch
 from tqdm import tqdm
-def GPFEva(loader, gnn, prompt, answering, num_class, device):
+import torch.nn.functional as F
+from torch_geometric.data import Batch, Data
+
+def GPFEva(loader, gnn, prompt, answering, num_class, detectors, device):
     prompt.eval()
     if answering:
         answering.eval()
@@ -16,6 +19,45 @@ def GPFEva(loader, gnn, prompt, answering, num_class, device):
     # auprc.reset()
     with torch.no_grad(): 
         for batch_id, batch in enumerate(loader): 
+
+            ################
+            # pruned_batch_list = []
+            
+            # for g in Batch.to_data_list(batch):
+            #     # Prune edge index
+            #     edge_index = g.edge_index
+            #     cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
+            #     # Define threshold t
+            #     threshold = 0.2
+            #     # Identify edges to keep
+            #     keep_edges = cosine_sim >= threshold
+            #     # Filter edge_index to only keep edges above the threshold
+            #     pruned_edge_index = edge_index[:, keep_edges]
+            #     pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
+            #     pruned_batch_list.append(pruned_g)
+            # batch = Batch.from_data_list(pruned_batch_list)
+            ################
+
+            ################
+            pruned_batch_list = []
+            for g in Batch.to_data_list(batch):
+                g = g.to(device)
+                logits_ptb = gnn(g.x, g.edge_index)
+                logits_ptb = torch.concat((logits_ptb, g.x), dim=1)
+                features_edge = torch.concat((logits_ptb[g.edge_index[0]], logits_ptb[g.edge_index[1]]), dim=1)
+                remove_flag = torch.zeros(g.edge_index.shape[1], dtype=torch.bool).to(device)
+                for k in range(1):
+                        output = F.sigmoid(detectors[k](features_edge)).squeeze(-1)
+                        remove_flag = torch.where(output > 0.1, True, remove_flag)
+                keep_edges = remove_flag == False
+                pruned_edge_index = g.edge_index[:, keep_edges]
+                pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
+                pruned_batch_list.append(pruned_g)
+            batch = Batch.from_data_list(pruned_batch_list)
+            ################
+
+
+
             batch = batch.to(device) 
             batch.x = prompt.add(batch.x)
             out = gnn(batch.x, batch.edge_index, batch.batch)

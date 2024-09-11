@@ -30,13 +30,13 @@ class BaseTask:
     def initialize_optimizer(self):
         if self.prompt_type == 'None': 
             # finetune  GNN和answer头一起调整，表示的是fintune
-            model_param_group = []
-            model_param_group.append({"params": self.gnn.parameters()})
-            model_param_group.append({"params": self.answering.parameters()})
-            self.optimizer = optim.Adam(model_param_group, lr=0.005, weight_decay=5e-4)
+            # model_param_group = []
+            # model_param_group.append({"params": self.gnn.parameters()})
+            # model_param_group.append({"params": self.answering.parameters()})
+            # self.optimizer = optim.Adam(model_param_group, lr=0.005, weight_decay=5e-4)
 
             # linear probe 只调整answer头
-            # self.optimizer = optim.Adam(self.answering.parameters(), lr=0.005, weight_decay=5e-4)
+            self.optimizer = optim.Adam(self.answering.parameters(), lr=0.001, weight_decay=5e-4)
         elif self.prompt_type in ['GPPT']:
             self.pg_opi = optim.Adam(self.prompt.parameters(), lr=2e-3, weight_decay=5e-4)
         elif self.prompt_type == 'All-in-one':

@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch_geometric.loader import DataLoader
 from torch_geometric.data   import Data
 import torch.utils.data as Data1
-from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process, cmd, MLP, train_MLP, get_psu_labels
+from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process, cmd, MLP, train_MLP, get_psu_labels, finetune_answering, get_detector
 from prompt_graph.evaluation import GPPTEva, GNNNodeEva, GpromptEva, MultiGpromptEva, GPFEva, AllInOneEva, RobustPromptInductiveEva, RobustPromptTranductiveEva,GPFTranductiveEva
 from prompt_graph.data import induced_graphs, split_induced_graphs, split_induced_graphs_save_relabel_central_node_and_raw_index, load4node_shot_index, load4node_attack_shot_index, load4node_attack_specified_shot_index
 
@@ -18,6 +18,7 @@ import os
 import numpy as np
 import scipy.sparse as sp
 from torch_geometric.utils import to_scipy_sparse_matrix
+from torch_geometric.data import Batch, Data
 from tqdm import tqdm
 
 
@@ -163,6 +164,7 @@ class NodeTask(BaseTask):
 
       def train(self, data):
             self.gnn.train()
+            self.answering.train()
             self.optimizer.zero_grad() 
             out = self.gnn(data.x, data.edge_index, batch=None) 
             out = self.answering(out)
@@ -174,6 +176,10 @@ class NodeTask(BaseTask):
       #####################################################################################################################################################
       #####################################################################################################################################################
       #####################################################################################################################################################
+      # ↓
+      # ↓
+      # ↓
+
       def AllInOneTrainSynchro(self, train_loader):
             self.prompt.train()
             self.answering.train()
@@ -225,9 +231,17 @@ class NodeTask(BaseTask):
                   print(("frozen gnn | *tune prompt |frozen answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, pg_loss)))
             
             return pg_loss
+      # ↑
+      # ↑
+      # ↑
       #####################################################################################################################################################
       #####################################################################################################################################################
       #####################################################################################################################################################
+
+
+
+
+
 
 
 
@@ -257,6 +271,10 @@ class NodeTask(BaseTask):
       #####################################################################################################################################################
       #####################################################################################################################################################
       #####################################################################################################################################################
+      # ↓
+      # ↓
+      # ↓
+
       def GPFTrain_Shield(self, train_loader, pseudo_logits_train):
             self.prompt.train()
             self.answering.train()
@@ -267,9 +285,7 @@ class NodeTask(BaseTask):
                   batch.x = self.prompt.add(batch.x)
                   out = self.gnn(batch.x, batch.edge_index, batch.batch, prompt = self.prompt, prompt_type = self.prompt_type)
                   out = self.answering(out)
-
                   # loss = self.criterion(out, batch.y)  
-
                   # loss_ce = self.criterion(out, torch.argmax(pseudo_logits_train, dim=1)) # 注意，这个有的时候预测不一定准确！在fewshot的时候可能还可以，但是shot多了貌似就不太行了，要具体分析一下
                   loss_ce = self.criterion(out, batch.y)  
                   # KL散度，知识蒸馏
@@ -285,11 +301,47 @@ class NodeTask(BaseTask):
             return total_loss / len(train_loader) 
 
 
-      def GPFTrain(self, train_loader):
+      def GPFTrain(self, train_loader, detectors):
             self.prompt.train()
             self.answering.train()
             total_loss = 0.0 
-            for batch in train_loader:  
+            for batch in train_loader:
+                  ################
+                  # pruned_batch_list = []
+                  # for g in Batch.to_data_list(batch):
+                  #       # Prune edge index
+                  #       edge_index = g.edge_index
+                  #       cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
+                  #       # Define threshold t
+                  #       threshold = 0.2
+                  #       # Identify edges to keep
+                  #       keep_edges = cosine_sim >= threshold
+                  #       # Filter edge_index to only keep edges above the threshold
+                  #       pruned_edge_index = edge_index[:, keep_edges]
+                  #       pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
+                  #       pruned_batch_list.append(pruned_g)
+                  # batch = Batch.from_data_list(pruned_batch_list)
+                  ################
+
+                  ################
+                  pruned_batch_list = []
+                  for g in Batch.to_data_list(batch):
+                        g = g.to(self.device)
+                        logits_ptb = self.gnn(g.x, g.edge_index)
+                        logits_ptb = torch.concat((logits_ptb, g.x), dim=1)
+                        features_edge = torch.concat((logits_ptb[g.edge_index[0]], logits_ptb[g.edge_index[1]]), dim=1)
+                        remove_flag = torch.zeros(g.edge_index.shape[1], dtype=torch.bool).to(self.device)
+                        for k in range(1):
+                              output = F.sigmoid(detectors[k](features_edge)).squeeze(-1)
+                              remove_flag = torch.where(output > 0.1, True, remove_flag)
+                        keep_edges = remove_flag == False
+                        pruned_edge_index = g.edge_index[:, keep_edges]
+                        pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
+                        pruned_batch_list.append(pruned_g)
+                  batch = Batch.from_data_list(pruned_batch_list)
+                  ################
+
+
                   self.optimizer.zero_grad() 
                   batch = batch.to(self.device)
                   batch.x = self.prompt.add(batch.x)
@@ -313,6 +365,9 @@ class NodeTask(BaseTask):
             self.optimizer.step()
             return loss
       
+      # ↑
+      # ↑
+      # ↑
       #####################################################################################################################################################
       #####################################################################################################################################################
       #####################################################################################################################################################
@@ -427,6 +482,13 @@ class NodeTask(BaseTask):
 
 
 
+
+
+
+
+
+
+
       def run(self):
             if self.prompt_type == 'MultiGprompt':
                   # 使用预训练的GCN得到还没有加prompt的embs
@@ -445,7 +507,7 @@ class NodeTask(BaseTask):
                   test_embs     = embeds[0, idx_test].type(torch.long)
 
 
-            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus','RobustPrompt_I','All-in-one','GPF']: #,'GPF'，'All-in-one',
+            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus','RobustPrompt_I']: #,'GPF'，'All-in-one',
                   # 利用shot的标签训练一个pseudo label分类器
                   print("don't use structure")
                   idx_train  = self.data.train_mask.nonzero().squeeze().cpu()
@@ -476,7 +538,7 @@ class NodeTask(BaseTask):
                   
                   # 对于'RobustPrompt_T','RobustPrompt_Tplus'扩展没有被扰动的部分（扩展伪标签）
                   # 对于'RobustPrompt_I'，我们利用训练好的pseudo_model直接训练一个鲁棒的提示
-                  if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus', 'All-in-one', 'GPF']: # 扩展没有被扰动的部分（扩展伪标签）
+                  if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus']: # 扩展没有被扰动的部分（扩展伪标签）
                         logits = pseudo_model(self.data.x.to(self.device)).cpu()
                         pseudo_labels = self.data.y.clone()
                         idx_train_regenerate, pseudo_labels = get_psu_labels(logits, pseudo_labels, idx_train, idx_test, k=k, append_idx=True) # 7 * 80 = 560 or + 7 = 630    1 shot
@@ -537,42 +599,89 @@ class NodeTask(BaseTask):
                   # ###############################################################
                   # # 打印一下节点周围邻居节点的标签，研究一下
 
+            if self.prompt_type in ['GPF']:
+                  from data_pyg.data_pyg import get_dataset
+                  import os.path as osp
+                  from torch_geometric.utils import remove_self_loops
+
+                  path                     = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+                  clean_dataset_pretrain   = get_dataset(path, 'Attack-' + self.dataset_name, self.attack_method.split('-')[0], 0.0)
+                  clean_data_pretrain      = clean_dataset_pretrain[0]
+                  clean_data_pretrain.edge_index, _ = remove_self_loops(clean_data_pretrain.edge_index) # attack的时候不能有自环
+                  clean_data_pretrain      = clean_data_pretrain.to(self.device)
+                  tune_answering_acc_test  = finetune_answering(self.gnn, clean_data_pretrain, self.answering, self.criterion, self.output_dim, 300, self.device)
+                  
+                  # get the pseudo-labels, which will be used to train the detector
+                  print("====== Get the pseudo-labels ======")
+                  self.gnn.eval()
+                  self.answering.eval()
+                  out  =  self.gnn(clean_data_pretrain.x, clean_data_pretrain.edge_index, batch=None) 
+                  pseudo_labels  =  self.answering(out).argmax(dim=1)
+                  # print(sum(pseudo_labels == clean_data_pretrain.y) / len(clean_data_pretrain.y))
+
+                  # Hyper-parameters for detector
+                  d_epochs = 50
+                  weight_decay_d = 1e-4
+                  lr_d = 1e-2
+                  loss_d = nn.BCEWithLogitsLoss()
+                  batch_size = 2048
+                  n_hidden_d = 64
+                  dim_input = self.hid_dim * 2 + self.input_dim* 2
+
+                  print("====== Start training the detectors ======")
+                  clean_dense_A = torch.zeros((clean_data_pretrain.x.shape[0], clean_data_pretrain.x.shape[0]), dtype=clean_data_pretrain.edge_index.dtype)
+                  for i, (start, end) in enumerate(clean_data_pretrain.edge_index.t()):
+                        clean_dense_A[start, end] = 1
+                  clean_dense_A = torch.tensor(clean_dense_A, dtype=torch.float32).to(self.device)
+
+                  idx_train = clean_data_pretrain.train_mask.nonzero().squeeze(-1)
+                  idx_val = clean_data_pretrain.val_mask.nonzero().squeeze(-1)
+                  idx_test = clean_data_pretrain.test_mask.nonzero().squeeze(-1)
+
+                  detectors = []
+                  for _ in range(1):
+                        detector = MLP(dim_input, 1, n_hidden_d, n_layers=2).to(self.device)
+                        optimizer_d = torch.optim.Adam(detector.parameters(), lr=lr_d, weight_decay=weight_decay_d)
+                        detector = get_detector(detector, optimizer_d, d_epochs, loss_d, 0.3, clean_data_pretrain.x,
+                                                clean_dense_A, clean_data_pretrain.y, pseudo_labels, self.device, idx_train, idx_val, idx_test, self.gnn, self.hid_dim,
+                                                batch_size)
+                        detectors.append(detector)
+
+
+
 
             # for all-in-one and Gprompt we use k-hop subgraph
             if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
-                  if self.prompt_type in ['All-in-one','GPF']:
-                        # pass
-                        print("Build a regenerate train dataloader")
-                        self.whole_dataset = self.train_dataset + self.val_dataset + self.test_dataset
-                        self.whole_dataset = sorted(self.whole_dataset, key=lambda x:x.y, reverse=False)
-      
-                        # regenerate_train_dataset         =  [[self.whole_dataset[i] for i in idx_train_regenerate]]
-                        # self.regenerate_train_dataset    =  Data1.TensorDataset(regenerate_train_dataset, pseudo_labels[idx_train_regenerate]) 
-                        # regenerate_train_dataloader      =  Data1.DataLoader(self.regenerate_train_dataset, batch_size=100, shuffle=True)
-
-                        self.regenerate_train_dataset = []
-                        for i in idx_train_regenerate:
-                              self.whole_dataset[i].pseudo_label = pseudo_labels[i].long().item() # 加item！！！！！！要不会报错！啊啊啊啊啊啊啊啊啊啊啊啊
-                              self.regenerate_train_dataset.append(self.whole_dataset[i])
-                        regenerate_train_loader = DataLoader(self.regenerate_train_dataset, batch_size=800, shuffle=True)
-
-
-
-                  elif self.prompt_type == 'RobustPrompt_I':
-                        print("Build a remaining dataloader.")
-                        print("Combine the val and the test dataset to study the distribution shift problem! ")
-                        # add by ssh 把除了训练集induced graph之外的图作为一个remaining dataset,为了讨论分布的一致问题
-                        self.remaining_dataset = self.val_dataset + self.test_dataset
-                        remaining_loader = DataLoader(self.remaining_dataset, batch_size=2500, shuffle=True)
-
-             
                   train_loader = DataLoader(self.train_dataset, batch_size=100, shuffle=True)
                   test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
                   val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
 
+                  # if self.prompt_type == 'RobustPrompt_I':
+                  #       print("Build a remaining dataloader.")
+                  #       print("Combine the val and the test dataset to study the distribution shift problem! ")
+                  #       # add by ssh 把除了训练集induced graph之外的图作为一个remaining dataset,为了讨论分布的一致问题
+                  #       self.remaining_dataset = self.val_dataset + self.test_dataset
+                  #       remaining_loader = DataLoader(self.remaining_dataset, batch_size=2500, shuffle=True)
 
-                       
+             
+                  # elif self.prompt_type in ['All-in-one','GPF']:
+                  #       # pass
+                  #       print("Build a regenerate train dataloader")
+                  #       self.whole_dataset = self.train_dataset + self.val_dataset + self.test_dataset
+                  #       self.whole_dataset = sorted(self.whole_dataset, key=lambda x:x.y, reverse=False)
+
+                  #       self.regenerate_train_dataset = []
+                  #       for i in idx_train_regenerate:
+                  #             self.whole_dataset[i].pseudo_label = pseudo_labels[i].long().item() # 加item！要不会报错！头疼
+                  #             self.regenerate_train_dataset.append(self.whole_dataset[i])
+                  #       regenerate_train_loader = DataLoader(self.regenerate_train_dataset, batch_size=100, shuffle=True)
                   print("prepare induce graph data is finished!")
+
+
+
+
+
+
 
 
 
@@ -738,7 +847,9 @@ class NodeTask(BaseTask):
                         loss, center =  self.GpromptTrain(train_loader)
                         # val_acc, F1 = GpromptEva(val_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                   elif self.prompt_type in ['GPF', 'GPF-plus']:
-                        loss = self.GPFTrain(regenerate_train_loader)         
+                        # loss = self.GPFTrain(train_loader) 
+                        loss = self.GPFTrain(train_loader, detectors) 
+                        # loss = self.GPFTrain(regenerate_train_loader)         
                         # loss = self.GPFTrain_Shield(train_loader, pseudo_logits_train)      
                         # val_acc, F1 = GPFEva(val_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)                                             
                   elif self.prompt_type == 'MultiGprompt':
@@ -787,7 +898,8 @@ class NodeTask(BaseTask):
                   elif self.prompt_type =='Gprompt':
                         test_acc, F1           = GpromptEva(test_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                   elif self.prompt_type in ['GPF', 'GPF-plus']:
-                        test_acc, F1 = GPFEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)                                             
+                        # test_acc, F1 = GPFEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)     
+                        test_acc, F1 = GPFEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, detectors,self.device)                                         
                   elif self.prompt_type == 'MultiGprompt':
                         prompt_feature  = self.feature_prompt(self.features)
                         test_acc, F1    = MultiGpromptEva(test_embs, test_lbls, idx_test, prompt_feature, self.Preprompt, self.DownPrompt, self.sp_adj, self.output_dim, self.device)

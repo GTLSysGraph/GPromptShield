@@ -11,7 +11,7 @@ python MyTask.py \
 --run_split 2 \
 --hid_dim 256 \
 --num_layer 2 \
---epochs 100 \
+--epochs 10 \
 --seed 2 \
 --attack_downstream \
 --attack_method 'Meta_Self-0.2' \

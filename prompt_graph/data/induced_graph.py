@@ -151,13 +151,13 @@ def split_induced_graphs_save_relabel_central_node_and_raw_index(name, data, fil
             subset = torch.unique(torch.cat([torch.LongTensor([index]), torch.flatten(subset)]))
 
         # 保存新图中的中心节点索引 add by ssh
-        relabel_center_index = torch.nonzero(subset == index).squeeze()
+        relabel_central_index = torch.nonzero(subset == index).squeeze()
 
         sub_edge_index, _ = subgraph(subset, data.edge_index, relabel_nodes=True)
 
         x = data.x[subset]
 
-        induced_graph = Data(x=x, edge_index=sub_edge_index, y=current_label, relabel_central_index= relabel_center_index, raw_index = index, pseudo_label=-1)
+        induced_graph = Data(x=x, edge_index=sub_edge_index, y=current_label, relabel_central_index= relabel_central_index, raw_index = index, pseudo_label=-1)
         # print(index+100)
         # 检查节点子图是否在训练集、测试集或验证集中
         if (data.train_mask[index]):

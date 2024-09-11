@@ -47,13 +47,13 @@ class LightPrompt(torch.nn.Module):
         pg_list = []
         for i, tokens in enumerate(self.token_list):
             # inner link: token-->token
-            token_dot = torch.mm(tokens, torch.transpose(tokens, 0, 1))
+            token_dot = torch.mm(tokens, torch.transpose(tokens, 0, 1)) # 例如，token的特征维度是[10, 1433]
             token_sim = torch.sigmoid(token_dot)  # 0-1
 
             inner_adj = torch.where(token_sim < self.inner_prune, 0, token_sim)
-            edge_index = inner_adj.nonzero().t().contiguous()
+            edge_index = inner_adj.nonzero().t().contiguous() 
 
-            pg_list.append(Data(x=tokens, edge_index=edge_index, y=torch.tensor([i]).long()))
+            pg_list.append(Data(x=tokens, edge_index=edge_index, y=torch.tensor([i]).long())) # 构建了10个节点的全连接提示图
 
         pg_batch = Batch.from_data_list(pg_list)
         return pg_batch
@@ -78,20 +78,21 @@ class HeavyPrompt(LightPrompt):
 
         re_graph_list = []
         for g in Batch.to_data_list(graph_batch):
-            g_edge_index = g.edge_index + token_num # 相当于每一个节点的编号+token_num,把前面的编号留给pg图
+            g_edge_index = g.edge_index + token_num 
+            # 相当于每一个节点的编号+token_num,把前面的编号留给prompt图，这个prompt图就是一个10个节点组成的全链接图, 例如，token的特征维度是[10, 1433], 就弄了一个10个节点的全连接可训练图当prompt图
 
-            cross_dot = torch.mm(pg.x, torch.transpose(g.x, 0, 1))
+            cross_dot = torch.mm(pg.x, torch.transpose(g.x, 0, 1))  # 这个是这10个节点的prompt图和Cora图上所有节点连接，比如cora 2485个节点，这个就是[10，2485]的矩阵
             cross_sim = torch.sigmoid(cross_dot)  # 0-1 from prompt to input graph
-            cross_adj = torch.where(cross_sim < self.cross_prune, 0, cross_sim)
+            cross_adj = torch.where(cross_sim < self.cross_prune, 0, cross_sim) # 
             
-            cross_edge_index = cross_adj.nonzero().t().contiguous()
+            cross_edge_index = cross_adj.nonzero().t().contiguous() # 对这个[10，2485]的矩阵修剪了一下当作token和Cora的连接提示图
             cross_edge_index[1] = cross_edge_index[1] + token_num
             
-            x = torch.cat([pg.x, g.x], dim=0)
+            x = torch.cat([pg.x, g.x], dim=0)   # 把prompt图的token和cora的特征拼接在一起
             y = g.y
 
-            edge_index = torch.cat([inner_edge_index, g_edge_index, cross_edge_index], dim=1)
-            data = Data(x=x, edge_index=edge_index, y=y)
+            edge_index = torch.cat([inner_edge_index, g_edge_index, cross_edge_index], dim=1) # inner 就是prompt图的内部自己连接，g_edge_index就是cora自己的边，cross_edge_index就是prompt和cora的连接
+            data = Data(x=x, edge_index=edge_index, y=y) 
             re_graph_list.append(data)
 
         graphp_batch = Batch.from_data_list(re_graph_list)
