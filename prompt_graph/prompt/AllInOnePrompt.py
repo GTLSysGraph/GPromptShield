@@ -102,14 +102,48 @@ class HeavyPrompt(LightPrompt):
     def Tune(self, train_loader, gnn, answering, lossfn, opi, device):
         running_loss = 0.
         for batch_id, train_batch in enumerate(train_loader):  
+
+            # ################
+            # pruned_batch_list = []
+            # for g in Batch.to_data_list(train_batch):
+            #       # Prune edge index
+            #       edge_index = g.edge_index
+            #       cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
+            #       # Define threshold t
+            #       threshold = 0.1
+            #       # Identify edges to keep
+            #       keep_edges = cosine_sim >= threshold
+            #       # Filter edge_index to only keep edges above the threshold
+            #       pruned_edge_index = edge_index[:, keep_edges]
+            #       pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
+            #       pruned_batch_list.append(pruned_g)
+            # train_batch = Batch.from_data_list(pruned_batch_list)
+            # ################
+
+            # ###############
+            # pruned_batch_list = []
+            # for g in Batch.to_data_list(train_batch):
+            #     g = g.to(device)
+            #     logits_ptb = gnn(g.x, g.edge_index)
+            #     logits_ptb = torch.concat((logits_ptb, g.x), dim=1)
+            #     features_edge = torch.concat((logits_ptb[g.edge_index[0]], logits_ptb[g.edge_index[1]]), dim=1)
+            #     remove_flag = torch.zeros(g.edge_index.shape[1], dtype=torch.bool).to(device)
+            #     for k in range(len(detectors)):
+            #         output = F.sigmoid(detectors[k](features_edge)).squeeze(-1)
+            #         remove_flag = torch.where(output > 0.1, True, remove_flag)
+            #     keep_edges = remove_flag == False
+            #     pruned_edge_index = g.edge_index[:, keep_edges]
+            #     pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
+            #     pruned_batch_list.append(pruned_g)
+            # train_batch = Batch.from_data_list(pruned_batch_list)
+            # ###############
+
+
             train_batch = train_batch.to(device)
             prompted_graph = self.forward(train_batch)
             graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch)
             pre = answering(graph_emb)
-
             train_loss = lossfn(pre, train_batch.y)
-            # train_loss = lossfn(pre, train_batch.pseudo_label)
-
             opi.zero_grad()
             train_loss.backward()
             opi.step()
@@ -168,6 +202,7 @@ class HeavyPrompt(LightPrompt):
             self.optimizer.step()
             total_loss += loss.item()  
         return total_loss / len(train_loader) 
+
 
 class FrontAndHead(torch.nn.Module):
     def __init__(self, input_dim, hid_dim=16, num_classes=2,

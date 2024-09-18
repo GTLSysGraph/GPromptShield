@@ -167,13 +167,13 @@ def evaluate_pretrain(data, mask,  gnn, answering, num_class, device):
 def finetune_answering(model, data, answering, criterion, num_class, epochs, device, verbose=True):
     
     # 只tune anser
-    optimizer = optim.Adam(answering.parameters(), lr=0.001, weight_decay=5e-4)
+    # optimizer = optim.Adam(answering.parameters(), lr=0.001, weight_decay=5e-4)
     
     # finetune  GNN和answer头一起调整，表示的是fintune
-    # model_param_group = []
-    # model_param_group.append({"params": model.parameters()})
-    # model_param_group.append({"params": answering.parameters()})
-    # optimizer = optim.Adam(model_param_group, lr=0.005, weight_decay=5e-4)
+    model_param_group = []
+    model_param_group.append({"params": model.parameters()})
+    model_param_group.append({"params": answering.parameters()})
+    optimizer = optim.Adam(model_param_group, lr=0.005, weight_decay=5e-4)
 
     model.train()
     answering.train()
@@ -224,15 +224,17 @@ def get_detector(detector, optimizer_d, d_epochs, loss_d, ptb_rate_adv, features
     # Attack the graph via PGD using pseudo-labels
     perturbations = int(ptb_rate_adv * (adj.sum() // 2))
     target_gcn = GCN_deeprobust(nfeat=features.shape[1],
-          nhid=64,
+          nhid=model_out_dim,
           nclass=n_class,
           dropout=0.9, device=device, lr=0.01, weight_decay=1e-3)
     target_gcn = target_gcn.to(device)
     target_gcn.fit(features, adj, labels, idx_train, idx_val, patience=30)
     attack_model = PGDAttack(model=target_gcn, nnodes=adj.shape[0], loss_type='Tanh', device=device)
     attack_model = attack_model.to(device)
-    features_norm = normalize_feature(features.to('cpu'))
-    attack_model.attack(features_norm, adj.to('cpu'), pseudo_labels.to('cpu'), idx_test, perturbations, epochs=10)
+
+    # features_norm = normalize_feature(features.to('cpu'))
+
+    attack_model.attack(features.to('cpu'), adj.to('cpu'), pseudo_labels.to('cpu'), idx_test, perturbations, epochs=100)
     adversarial_adj = attack_model.modified_adj
     adversarial_adj = adversarial_adj.to(device)
     change_adj = adversarial_adj - adj
@@ -269,7 +271,7 @@ def get_detector(detector, optimizer_d, d_epochs, loss_d, ptb_rate_adv, features
     train_labels_d = torch.concat((positive_labels, negtive_labels), dim=0)
     train_dataset = Data1.TensorDataset(train_features_d, train_labels_d)
     train_loader = Data1.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    acc = train_detector(detector, d_epochs, optimizer_d, train_loader, loss_d, device, verbose=True)
+    train_detector(detector, d_epochs, optimizer_d, train_loader, loss_d, device, verbose=True)
     return detector
 
 
@@ -277,8 +279,8 @@ def get_detector(detector, optimizer_d, d_epochs, loss_d, ptb_rate_adv, features
 
 def train_detector(model, epochs, optimizer, train_loader, loss, device, verbose=True):
     model.train()
-    best_acc = 0
-    best_loss =9999
+    # best_acc = 0
+    # best_loss =9999
     for epoch in range(epochs):
         for x, y in train_loader:
             x = x.to(device)
@@ -288,20 +290,20 @@ def train_detector(model, epochs, optimizer, train_loader, loss, device, verbose
             l = loss(output, y.unsqueeze(1).float())
             l.backward()
             optimizer.step()
-        n_acc = 0
-        loss_total = 0
-        n = 0
-        best_acc_val = 0
-        best_loss_val = 0
-    model.eval()
-    n_acc = 0
-    n = 0
-    for x, y in train_loader:
-        x = x.to(device)
-        y = y.to(device)
-        output = model(x)
-        pred = (F.sigmoid(output) > 0.5).type(torch.long).squeeze(1)
-        n += len(y)
-        acc = (pred == y).sum().item()
-        n_acc += acc
-    return n_acc / n
+    #     n_acc = 0
+    #     loss_total = 0
+    #     n = 0
+    #     best_acc_val = 0
+    #     best_loss_val = 0
+    # model.eval()
+    # n_acc = 0
+    # n = 0
+    # for x, y in train_loader:
+    #     x = x.to(device)
+    #     y = y.to(device)
+    #     output = model(x)
+    #     pred = (F.sigmoid(output) > 0.5).type(torch.long).squeeze(1)
+    #     n += len(y)
+    #     acc = (pred == y).sum().item()
+    #     n_acc += acc
+    # return n_acc / n

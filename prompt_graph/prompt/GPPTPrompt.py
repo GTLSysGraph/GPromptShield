@@ -30,7 +30,7 @@ class GPPTPrompt(torch.nn.Module):
         self.center_num = center_num
         self.n_classes = n_classes
         self.device = device
-        self.StructureToken = torch.nn.Linear(n_hidden, center_num, bias=False)
+        self.StructureToken = torch.nn.Linear(n_hidden, center_num, bias=False) # self.StructureToken.weight.shape torch.Size([7, 256])
         self.StructureToken=self.StructureToken.to(device)  # structure token
         self.TaskToken = torch.nn.ModuleList()
         for i in range(center_num):
@@ -58,7 +58,7 @@ class GPPTPrompt(torch.nn.Module):
         # 对train set做聚类，如果1 shot则每一个节点一个类， features的shape只有train
         cluster = KMeans(n_clusters=self.center_num,random_state=0).fit(features.detach().cpu())
         temp=torch.FloatTensor(cluster.cluster_centers_).to(self.device)
-        self.StructureToken.weight.data = temp.clone().detach()
+        self.StructureToken.weight.data = temp.clone().detach() # torch.Size([7, 256])
 
         p=[]
         for i in range(self.n_classes):

@@ -20,7 +20,7 @@ import scipy.sparse as sp
 from torch_geometric.utils import to_scipy_sparse_matrix
 from torch_geometric.data import Batch, Data
 from tqdm import tqdm
-
+import copy 
 
 warnings.filterwarnings("ignore")
 
@@ -161,7 +161,6 @@ class NodeTask(BaseTask):
 
 
 
-
       def train(self, data):
             self.gnn.train()
             self.answering.train()
@@ -173,20 +172,32 @@ class NodeTask(BaseTask):
             self.optimizer.step()  
             return loss.item()
  
-      #####################################################################################################################################################
-      #####################################################################################################################################################
-      #####################################################################################################################################################
-      # ↓
-      # ↓
-      # ↓
 
+
+      #####################################################################################################################################################
+      #####################################################################################################################################################
+      #####################################################################################################################################################
+      # ↓
+      # ↓
+      # ↓
       def AllInOneTrainSynchro(self, train_loader):
+            # 同时优化 发现效果都不如分开优化好，只tune answer头效果更好点
+            # from torch import nn, optim
+            # model_param_group = []
+            # model_param_group.append({"params": self.prompt.parameters()})
+            # model_param_group.append({"params": self.answering.parameters()})
+            # AllInOne_opi = optim.Adam(model_param_group, lr=0.001, weight_decay=5e-4)
+            
+            # 只tune answer
+            # AllInOne_opi = self.answer_opi
+            
+            # 只tune prompt
+            AllInOne_opi = self.pg_opi
+
             self.prompt.train()
             self.answering.train()
-            loss = self.prompt.Tune(train_loader, self.gnn,  self.answering, self.criterion, self.answer_opi, self.device)
+            loss = self.prompt.Tune(train_loader, self.gnn, self.answering, self.criterion, AllInOne_opi, self.device)
             return loss
-      
-      
       
       def AllInOneTrain_Shield(self, train_loader, pseudo_logits_train):
              #we update answering and prompt alternately.
@@ -209,7 +220,6 @@ class NodeTask(BaseTask):
                   print(("frozen gnn | *tune prompt |frozen answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, pg_loss)))
             return pg_loss
 
-
       def AllInOneTrain(self, train_loader):
             #we update answering and prompt alternately.
             
@@ -229,7 +239,6 @@ class NodeTask(BaseTask):
             for epoch in range(1, prompt_epoch + 1):
                   pg_loss = self.prompt.Tune( train_loader,  self.gnn, self.answering, self.criterion, self.pg_opi, self.device)
                   print(("frozen gnn | *tune prompt |frozen answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, pg_loss)))
-            
             return pg_loss
       # ↑
       # ↑
@@ -301,12 +310,12 @@ class NodeTask(BaseTask):
             return total_loss / len(train_loader) 
 
 
-      def GPFTrain(self, train_loader, detectors):
+      def GPFTrain(self, train_loader):
             self.prompt.train()
             self.answering.train()
             total_loss = 0.0 
             for batch in train_loader:
-                  ################
+                  ###############
                   # pruned_batch_list = []
                   # for g in Batch.to_data_list(batch):
                   #       # Prune edge index
@@ -321,25 +330,25 @@ class NodeTask(BaseTask):
                   #       pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
                   #       pruned_batch_list.append(pruned_g)
                   # batch = Batch.from_data_list(pruned_batch_list)
-                  ################
+                  ###############
 
-                  ################
-                  pruned_batch_list = []
-                  for g in Batch.to_data_list(batch):
-                        g = g.to(self.device)
-                        logits_ptb = self.gnn(g.x, g.edge_index)
-                        logits_ptb = torch.concat((logits_ptb, g.x), dim=1)
-                        features_edge = torch.concat((logits_ptb[g.edge_index[0]], logits_ptb[g.edge_index[1]]), dim=1)
-                        remove_flag = torch.zeros(g.edge_index.shape[1], dtype=torch.bool).to(self.device)
-                        for k in range(1):
-                              output = F.sigmoid(detectors[k](features_edge)).squeeze(-1)
-                              remove_flag = torch.where(output > 0.1, True, remove_flag)
-                        keep_edges = remove_flag == False
-                        pruned_edge_index = g.edge_index[:, keep_edges]
-                        pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
-                        pruned_batch_list.append(pruned_g)
-                  batch = Batch.from_data_list(pruned_batch_list)
-                  ################
+                  ###############
+                  # pruned_batch_list = []
+                  # for g in Batch.to_data_list(batch):
+                  #       g = g.to(self.device)
+                  #       logits_ptb = self.gnn(g.x, g.edge_index)
+                  #       logits_ptb = torch.concat((logits_ptb, g.x), dim=1)
+                  #       features_edge = torch.concat((logits_ptb[g.edge_index[0]], logits_ptb[g.edge_index[1]]), dim=1)
+                  #       remove_flag = torch.zeros(g.edge_index.shape[1], dtype=torch.bool).to(self.device)
+                  #       for k in range(len(detectors)):
+                  #             output = F.sigmoid(detectors[k](features_edge)).squeeze(-1)
+                  #             remove_flag = torch.where(output > 0.1, True, remove_flag)
+                  #       keep_edges = remove_flag == False
+                  #       pruned_edge_index = g.edge_index[:, keep_edges]
+                  #       pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
+                  #       pruned_batch_list.append(pruned_g)
+                  # batch = Batch.from_data_list(pruned_batch_list)
+                  # ###############
 
 
                   self.optimizer.zero_grad() 
@@ -418,15 +427,38 @@ class NodeTask(BaseTask):
             return total_loss / len(train_loader), mean_centers
 
 
+
+      #####################################################################################################################################################
+      #####################################################################################################################################################
+      #####################################################################################################################################################
+      # ↓
+      # ↓
+      # ↓
+      def RobustPromptInductiveTrainSynchro(self, train_loader):
+            # 同时优化 发现效果都不如分开优化好，只tune answer头效果更好点
+            # from torch import nn, optim
+            # model_param_group = []
+            # model_param_group.append({"params": self.prompt.parameters()})
+            # model_param_group.append({"params": self.answering.parameters()})
+            # RobustPrompt_opi = optim.Adam(model_param_group, lr=0.001, weight_decay=5e-4)
+            
+            # 只tune answer
+            # RobustPrompt_opi = self.answer_opi
+            
+            # 只tune prompt
+            # RobustPrompt_opi = self.pg_opi
+
+            self.prompt.train()
+            self.answering.train()
+            loss = self.prompt.Tune(train_loader, self.gnn, self.answering, self.criterion, self.optimizer, self.device)
+            return loss
+
       #prompt和anwser头一起优化，为了使用知识蒸馏训练，维度对齐
       def RobustPromptInductiveTrain_KD(self, train_loader, pseudo_model, pseudo_logits_train):
             self.prompt.train()
             self.answering.train()
             loss = self.prompt.TuneKnowledgeDistillation(train_loader, pseudo_model, pseudo_logits_train, self.gnn,  self.answering, self.criterion, self.optimizer, self.device)
             return loss
-
-
-
 
       # prompt和anwser头分开优化
       def RobustPromptInductiveTrain(self, train_loader, remaining_loader, pseudo_model):
@@ -449,6 +481,14 @@ class NodeTask(BaseTask):
                   print(("frozen gnn | *tune prompt |frozen answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, pg_loss)))
             
             return pg_loss
+      # ↑
+      # ↑
+      # ↑
+      #####################################################################################################################################################
+      #####################################################################################################################################################
+      #####################################################################################################################################################
+
+
 
 
 
@@ -507,7 +547,7 @@ class NodeTask(BaseTask):
                   test_embs     = embeds[0, idx_test].type(torch.long)
 
 
-            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus','RobustPrompt_I']: #,'GPF'，'All-in-one',
+            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus']: #,'GPF'，'All-in-one',
                   # 利用shot的标签训练一个pseudo label分类器
                   print("don't use structure")
                   idx_train  = self.data.train_mask.nonzero().squeeze().cpu()
@@ -599,7 +639,7 @@ class NodeTask(BaseTask):
                   # ###############################################################
                   # # 打印一下节点周围邻居节点的标签，研究一下
 
-            if self.prompt_type in ['GPF']:
+            if self.prompt_type in []: # 'GPF', 'All-in-one'
                   from data_pyg.data_pyg import get_dataset
                   import os.path as osp
                   from torch_geometric.utils import remove_self_loops
@@ -609,7 +649,8 @@ class NodeTask(BaseTask):
                   clean_data_pretrain      = clean_dataset_pretrain[0]
                   clean_data_pretrain.edge_index, _ = remove_self_loops(clean_data_pretrain.edge_index) # attack的时候不能有自环
                   clean_data_pretrain      = clean_data_pretrain.to(self.device)
-                  tune_answering_acc_test  = finetune_answering(self.gnn, clean_data_pretrain, self.answering, self.criterion, self.output_dim, 300, self.device)
+                  gnn_copy = copy.deepcopy(self.gnn)
+                  tune_answering_acc_test  = finetune_answering(gnn_copy, clean_data_pretrain, self.answering, self.criterion, self.output_dim, 300, self.device)
                   
                   # get the pseudo-labels, which will be used to train the detector
                   print("====== Get the pseudo-labels ======")
@@ -627,6 +668,7 @@ class NodeTask(BaseTask):
                   batch_size = 2048
                   n_hidden_d = 64
                   dim_input = self.hid_dim * 2 + self.input_dim* 2
+                  num_detectors = 5
 
                   print("====== Start training the detectors ======")
                   clean_dense_A = torch.zeros((clean_data_pretrain.x.shape[0], clean_data_pretrain.x.shape[0]), dtype=clean_data_pretrain.edge_index.dtype)
@@ -639,13 +681,15 @@ class NodeTask(BaseTask):
                   idx_test = clean_data_pretrain.test_mask.nonzero().squeeze(-1)
 
                   detectors = []
-                  for _ in range(1):
+                  for _ in range(num_detectors):
                         detector = MLP(dim_input, 1, n_hidden_d, n_layers=2).to(self.device)
                         optimizer_d = torch.optim.Adam(detector.parameters(), lr=lr_d, weight_decay=weight_decay_d)
-                        detector = get_detector(detector, optimizer_d, d_epochs, loss_d, 0.3, clean_data_pretrain.x,
+                        detector = get_detector(detector, optimizer_d, d_epochs, loss_d, 0.2, clean_data_pretrain.x,
                                                 clean_dense_A, clean_data_pretrain.y, pseudo_labels, self.device, idx_train, idx_val, idx_test, self.gnn, self.hid_dim,
                                                 batch_size)
                         detectors.append(detector)
+
+
 
 
 
@@ -836,7 +880,7 @@ class NodeTask(BaseTask):
                         loss = self.train(self.data)       
                         # val_acc,  F1  = GNNNodeEva(self.data, self.data.val_mask, self.gnn, self.answering, self.output_dim, self.device)
                   elif self.prompt_type == 'All-in-one':
-                        # loss = self.AllInOneTrainSynchro(regenerate_train_loader)
+                        # loss = self.AllInOneTrainSynchro(train_loader)
                         loss = self.AllInOneTrain(train_loader)    # train_loader
                         # loss = self.AllInOneTrain_Shield(regenerate_train_loader, pseudo_logits_train) #没啥效果，感觉还是应该prompt和answer一起调整才可以   
                         # val_acc, F1    = AllInOneEva(val_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)     
@@ -847,8 +891,8 @@ class NodeTask(BaseTask):
                         loss, center =  self.GpromptTrain(train_loader)
                         # val_acc, F1 = GpromptEva(val_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                   elif self.prompt_type in ['GPF', 'GPF-plus']:
-                        # loss = self.GPFTrain(train_loader) 
-                        loss = self.GPFTrain(train_loader, detectors) 
+                        loss = self.GPFTrain(train_loader) 
+                        # loss = self.GPFTrain(train_loader, detectors) 
                         # loss = self.GPFTrain(regenerate_train_loader)         
                         # loss = self.GPFTrain_Shield(train_loader, pseudo_logits_train)      
                         # val_acc, F1 = GPFEva(val_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)                                             
@@ -862,8 +906,10 @@ class NodeTask(BaseTask):
                         # val_acc,  F1    = GPFTranductiveEva(self.data, self.data.val_mask, self.gnn, self.prompt, self.answering, self.output_dim, self.device)
                   # add by ssh
                   elif self.prompt_type == 'RobustPrompt_I':
+                        loss = self.RobustPromptInductiveTrainSynchro(train_loader)
+                        # loss = self.RobustPromptInductiveTrain(train_loader)
                         # loss = self.RobustPromptInductiveTrain(train_loader, remaining_loader, pseudo_model)
-                        loss = self.RobustPromptInductiveTrain_KD(train_loader, pseudo_model, pseudo_logits_train)
+                        # loss = self.RobustPromptInductiveTrain_KD(train_loader, pseudo_model, pseudo_logits_train)
                         # val_acc, F1    = RobustPromptInductiveEva(val_loader,  'Val',  pseudo_model, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
 
                   elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
@@ -893,13 +939,14 @@ class NodeTask(BaseTask):
                         test_acc, F1   = GNNNodeEva(self.data, idx_test, self.gnn, self.answering,self.output_dim, self.device)          
                   elif self.prompt_type == 'All-in-one':
                         test_acc, F1   = AllInOneEva(test_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        # test_acc, F1   = AllInOneEva(test_loader, self.prompt, self.gnn, self.answering, self.output_dim, detectors,self.device)
                   elif self.prompt_type == 'GPPT':
                         test_acc, F1           = GPPTEva(self.data, self.data.test_mask, self.gnn, self.prompt, self.output_dim, self.device)
                   elif self.prompt_type =='Gprompt':
                         test_acc, F1           = GpromptEva(test_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
                   elif self.prompt_type in ['GPF', 'GPF-plus']:
-                        # test_acc, F1 = GPFEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)     
-                        test_acc, F1 = GPFEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, detectors,self.device)                                         
+                        test_acc, F1 = GPFEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)     
+                        # test_acc, F1 = GPFEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, detectors,self.device)                                         
                   elif self.prompt_type == 'MultiGprompt':
                         prompt_feature  = self.feature_prompt(self.features)
                         test_acc, F1    = MultiGpromptEva(test_embs, test_lbls, idx_test, prompt_feature, self.Preprompt, self.DownPrompt, self.sp_adj, self.output_dim, self.device)
@@ -908,7 +955,7 @@ class NodeTask(BaseTask):
             
                   # add by ssh 
                   elif self.prompt_type == 'RobustPrompt_I':
-                        test_acc, F1    = RobustPromptInductiveEva(test_loader,  'Test',  pseudo_model, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        test_acc, F1    = RobustPromptInductiveEva(test_loader,  'Test',  self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                   elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
                         test_acc, F1    = RobustPromptTranductiveEva(self.data, self.data.test_mask,  self.gnn, self.prompt, self.answering, self.output_dim, self.device)
 

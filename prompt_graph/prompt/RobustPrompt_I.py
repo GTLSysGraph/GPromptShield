@@ -65,6 +65,7 @@ class LightPrompt(torch.nn.Module):
         pg_batch = pg_list
         return pg_batch
 
+
 class RobustPrompt_I(LightPrompt):
     def __init__(self, token_dim, per_graph_token_num, num_prompt_graph = 1,cross_prune=0.1, inner_prune=0.01):
         super(RobustPrompt_I, self).__init__(token_dim, per_graph_token_num, num_prompt_graph, inner_prune)  # only has one prompt graph.
