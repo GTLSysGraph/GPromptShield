@@ -137,7 +137,7 @@ class BaseTask:
 
         elif self.prompt_type == 'RobustPrompt_I':
             print("start to realise RobustPrompt_I_Feat")
-            self.prompt = RobustPrompt_I_Feat(self.input_dim, num_heads=1, muti_defense_pt_list=['other_pt', 'sim_pt', 'degree_pt']).to(self.device)
+            self.prompt = RobustPrompt_I_Feat(self.input_dim, num_heads=1, muti_defense_pt_list=['sim_pt', 'degree_pt']).to(self.device)
             
             # print("start to realise RobustPrompt")
             # self.prompt = RobustPrompt_I(token_dim=self.input_dim, per_graph_token_num=10, num_prompt_graph= self.output_dim, cross_prune=0.1, inner_prune=0.3).to(self.device)
