@@ -7,7 +7,7 @@ python MyTask.py \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
 --prompt_type 'RobustPrompt_I' \
---shot_num 5 \
+--shot_num 1 \
 --run_split 2 \
 --hid_dim 256 \
 --num_layer 2 \
