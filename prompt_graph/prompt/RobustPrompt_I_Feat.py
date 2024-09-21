@@ -5,6 +5,7 @@ from torch_geometric.data import Batch, Data
 from torch_geometric.utils import degree
 import numpy as np
 
+# Done! next step
 class RobustPrompt_I_Feat(torch.nn.Module):
     def __init__(self, in_channels: int, muti_defense_pt_dict, use_attention, num_heads, kl_global, cosine_constraint):
         super(RobustPrompt_I_Feat, self).__init__()
