@@ -7,12 +7,12 @@ python MyTask.py \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
 --prompt_type 'RobustPrompt_I' \
---shot_num 1 \
+--shot_num 5 \
 --run_split 2 \
 --hid_dim 256 \
 --num_layer 2 \
 --epochs 100 \
---seed 2 \
+--seed 1 \
 --attack_downstream \
 --attack_method 'Meta_Self-0.25' \
 # --specified

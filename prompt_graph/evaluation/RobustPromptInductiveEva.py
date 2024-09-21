@@ -1,5 +1,7 @@
 import torchmetrics
 import torch
+from torch_geometric.data import Batch, Data
+import torch.nn.functional as F
 
 def RobustPromptInductiveEva(loader, tag, prompt, gnn, answering, num_class, device):
         prompt.eval()
@@ -18,17 +20,35 @@ def RobustPromptInductiveEva(loader, tag, prompt, gnn, answering, num_class, dev
 
         for batch_id, batch in enumerate(loader): 
             batch = batch.to(device) 
-
+ 
             # idea 1
             # prompted_graph, num_nodes_induced_graphs, num_nodes_prompt_graphs = prompt(batch, pseudo_model)
             # idea 2
             # prompted_graph = prompt.add_robust_prompt(batch)
             # idear 3
-            prompted_graph = prompt(batch, device)
+            prompted_graph, _ = prompt(batch, tag, device)
             # raw
             # prompted_graph = batch
 
-            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt_I')
+            ################
+            pruned_prompt_batch_list = []
+            for g_pt in Batch.to_data_list(prompted_graph):
+                # Prune edge index
+                edge_index = g_pt.edge_index
+                cosine_sim = F.cosine_similarity(g_pt.x[edge_index[0]], g_pt.x[edge_index[1]])
+                # Define threshold t
+                threshold = 0.2
+                # Identify edges to keep
+                keep_edges = cosine_sim >= threshold
+                # Filter edge_index to only keep edges above the threshold
+                pruned_edge_index = edge_index[:, keep_edges]
+                pruned_prompt_g  = Data(x=g_pt.x, edge_index=pruned_edge_index, y=g_pt.y)
+                pruned_prompt_batch_list.append(pruned_prompt_g)
+            pruned_prompt_graph = Batch.from_data_list(pruned_prompt_batch_list)
+            ################
+
+
+            node_emb, graph_emb = gnn(pruned_prompt_graph.x, pruned_prompt_graph.edge_index, pruned_prompt_graph.batch,  prompt_type = 'RobustPrompt_I')
             pre = answering(graph_emb)
             pred = pre.argmax(dim=1)  
             acc = accuracy(pred, batch.y)

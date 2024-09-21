@@ -19,11 +19,9 @@ def GPFEva(loader, gnn, prompt, answering, num_class, device):
     # auprc.reset()
     with torch.no_grad(): 
         for batch_id, batch in enumerate(loader): 
-
-            ################
+            ###############
             # pruned_batch_list = []
             # for g in Batch.to_data_list(batch):
-            #     print(g)
             #     # Prune edge index
             #     edge_index = g.edge_index
             #     cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
@@ -34,11 +32,9 @@ def GPFEva(loader, gnn, prompt, answering, num_class, device):
             #     # Filter edge_index to only keep edges above the threshold
             #     pruned_edge_index = edge_index[:, keep_edges]
             #     pruned_g          = Data(x=g.x, edge_index=pruned_edge_index,y=g.y, relabel_central_index= g.relabel_central_index, raw_index = g.raw_index, pseudo_label= g.pseudo_label)
-            #     print(pruned_g)
-            #     quit()
             #     pruned_batch_list.append(pruned_g)
             # batch = Batch.from_data_list(pruned_batch_list)
-            ################
+            ###############
 
             ################
             # pruned_batch_list = []

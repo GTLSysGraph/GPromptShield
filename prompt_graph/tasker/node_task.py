@@ -322,7 +322,7 @@ class NodeTask(BaseTask):
                   #       edge_index = g.edge_index
                   #       cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
                   #       # Define threshold t
-                  #       threshold = 0.2
+                  #       threshold = 0.1
                   #       # Identify edges to keep
                   #       keep_edges = cosine_sim >= threshold
                   #       # Filter edge_index to only keep edges above the threshold
@@ -450,7 +450,7 @@ class NodeTask(BaseTask):
 
             self.prompt.train()
             self.answering.train()
-            loss = self.prompt.Tune(train_loader, self.gnn, self.answering, self.criterion, self.optimizer, self.device)
+            loss = self.prompt.Tune(train_loader, 'train', self.gnn, self.answering, self.criterion, self.optimizer, self.device)
             return loss
 
       #prompt和anwser头一起优化，为了使用知识蒸馏训练，维度对齐
@@ -955,7 +955,7 @@ class NodeTask(BaseTask):
             
                   # add by ssh 
                   elif self.prompt_type == 'RobustPrompt_I':
-                        test_acc, F1    = RobustPromptInductiveEva(test_loader,  'Test',  self.prompt, self.gnn, self.answering, self.output_dim, self.device)
+                        test_acc, F1    = RobustPromptInductiveEva(test_loader, 'test', self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                   elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
                         test_acc, F1    = RobustPromptTranductiveEva(self.data, self.data.test_mask,  self.gnn, self.prompt, self.answering, self.output_dim, self.device)
 
