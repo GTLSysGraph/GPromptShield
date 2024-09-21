@@ -121,7 +121,7 @@ class RobustPrompt_I_Feat(torch.nn.Module):
                 c = torch.zeros(x_norm.shape[0], 1).to(device)
                 c = c.scatter_add_(dim=0, index=col.unsqueeze(1), src=e)
                 deg = degree(col, x.size(0), dtype=x.dtype).unsqueeze(-1) 
-                csim = c /deg
+                csim = c / deg
                 csim = csim.squeeze()
                 node_use_sim_pt = torch.nonzero(csim <= self.pt_dict['sim_pt']).squeeze(-1) # 不能直接用squeeze()，会把所有1维度都压缩，当只有单个节点会有问题
   
