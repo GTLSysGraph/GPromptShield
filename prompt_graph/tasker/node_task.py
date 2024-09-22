@@ -84,7 +84,7 @@ class NodeTask(BaseTask):
                   self.input_dim = self.data.x.shape[1]
                   self.output_dim = self.dataset.num_classes
 
-            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
+            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt-I']:
                   file_dir = './{}/{}/shot_{}/{}/induced_graph/{}'.format(data_dir_name, self.dataset_name, str(self.shot_num), str(self.run_split), self.attack_method)
                   file_path = os.path.join(file_dir, 'induced_graph.pkl')
 
@@ -350,7 +350,6 @@ class NodeTask(BaseTask):
                   # batch = Batch.from_data_list(pruned_batch_list)
                   # ###############
 
-
                   self.optimizer.zero_grad() 
                   batch = batch.to(self.device)
                   batch.x = self.prompt.add(batch.x)
@@ -365,11 +364,51 @@ class NodeTask(BaseTask):
       
 
       def GPFTranductivetrain(self, data): 
-            self.optimizer.zero_grad() 
+            self.prompt.train()
+            self.answering.train()
+
+            # ################
+            # # 放在前面: 先修剪图再对特征添加prompt
+            # # Prune edge index
+            # edge_index = data.edge_index
+            # cosine_sim = F.cosine_similarity(data.x[edge_index[0]], data.x[edge_index[1]])
+            # # Define threshold t
+            # threshold = 0.6
+            # # Identify edges to keep
+            # keep_edges = cosine_sim >= threshold
+            # # Filter edge_index to only keep edges above the threshold
+            # pruned_edge_index = edge_index[:, keep_edges]
+            # data  = Data(x=data.x, edge_index=pruned_edge_index, y=data.y, train_mask= data.train_mask, val_mask= data.val_mask, test_mask= data.test_mask)
+            # prompted_x = self.prompt.add(data.x)
+            # out = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type) # batch=None返回的是节点embedding
+            # ################
+  
+            ###############
+            # 前后都不处理，直接加提示
             prompted_x = self.prompt.add(data.x)
-            out       = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
+            out = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type) # batch=None返回的是节点embedding
+            ###############
+
+            # ################
+            # # 放在后面： 先加提示后根据添加prompt的特征修剪图  threshold = 0.5 是真牛逼
+            # prompted_x = self.prompt.add(data.x)
+            # # Prune edge index
+            # edge_index = data.edge_index
+            # cosine_sim = F.cosine_similarity(prompted_x[edge_index[0]], prompted_x[edge_index[1]])
+            # # Define threshold t
+            # threshold = 0.5
+            # # Identify edges to keep
+            # keep_edges = cosine_sim >= threshold
+            # # Filter edge_index to only keep edges above the threshold
+            # pruned_edge_index = edge_index[:, keep_edges]
+            # pruned_g  = Data(x=prompted_x, edge_index=pruned_edge_index, y=data.y)
+            # out = self.gnn(prompted_x, pruned_g.edge_index)
+            # ################
+
+
             out = self.answering(out)
             loss = self.criterion(out[data.train_mask], data.y[data.train_mask])
+            self.optimizer.zero_grad() 
             loss.backward()  
             self.optimizer.step()
             return loss
@@ -453,6 +492,7 @@ class NodeTask(BaseTask):
             loss = self.prompt.Tune(train_loader, 'train', self.gnn, self.answering, self.criterion, self.optimizer, self.device)
             return loss
 
+
       #prompt和anwser头一起优化，为了使用知识蒸馏训练，维度对齐
       def RobustPromptInductiveTrain_KD(self, train_loader, pseudo_model, pseudo_logits_train):
             self.prompt.train()
@@ -481,43 +521,38 @@ class NodeTask(BaseTask):
                   print(("frozen gnn | *tune prompt |frozen answering function... {}/{} ,loss: {:.4f} ".format(epoch, answer_epoch, pg_loss)))
             
             return pg_loss
-      # ↑
-      # ↑
-      # ↑
-      #####################################################################################################################################################
-      #####################################################################################################################################################
-      #####################################################################################################################################################
+      
 
-
-
-
-
-      def RobustPromptTranductivetrain(self, data, idx_train_regenerate, pseudo_labels): #, iid_train, pruned_data, lambda_cmd, lambda_mse
+      def RobustPromptTranductivetrain(self, data): 
             self.prompt.train()
+            self.answering.train()
+            loss = self.prompt.Tune(data, 'train', self.gnn, self.answering, self.criterion, self.optimizer, self.device)
+            return loss
+
+
+
+      def RobustPromptTranductivetrain_PseudoLabels(self, data, idx_train_regenerate, pseudo_labels): #, iid_train, pruned_data, lambda_cmd, lambda_mse
+            self.prompt.train()
+            self.answering.train()
             self.optimizer.zero_grad() 
             # 这里要注意，和GPF不同，这里都是一个图而不是loader，所以一个epoch跑完后data.x就消失了，不能进行后向传播，要用一个新的值存储, 不能用data.x = self.prompt.add(data.x)，直接被覆盖，无法训练
-
             prompted_x = self.prompt.add(data.x)
             out       = self.gnn(prompted_x, data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
-
-            # # sim 关注去噪
-            # out_clean = self.gnn(pruned_data.x, pruned_data.edge_index, prompt = self.prompt, prompt_type = self.prompt_type)
-            # loss_mse = F.mse_loss(out[data.train_mask], out_clean[data.train_mask])
-            # loss_mse = F.mse_loss(out, out_clean)
-
-            # cmd 关注分布
-            # loss_cmd = cmd(out[data.train_mask], out[iid_train, :])
-
             out = self.answering(out)
-
-
             # STRG 利用重新生成的idx_train和伪标签训练
             loss = self.criterion(out[idx_train_regenerate], pseudo_labels[idx_train_regenerate])
-            # 之前的探索
-            # loss = self.criterion(out[data.train_mask], data.y[data.train_mask])  #+ lambda_cmd * loss_cmd #+ lambda_mse * loss_mse
             loss.backward()  
             self.optimizer.step()
             return loss
+
+      
+      # ↑
+      # ↑
+      # ↑
+      #####################################################################################################################################################
+      #####################################################################################################################################################
+      #####################################################################################################################################################
+
 
 
 
@@ -547,7 +582,7 @@ class NodeTask(BaseTask):
                   test_embs     = embeds[0, idx_test].type(torch.long)
 
 
-            if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus']: #,'GPF'，'All-in-one',
+            if self.prompt_type in ['RobustPrompt-GPF','RobustPrompt-GPFplus']: #,'GPF'，'All-in-one',
                   # 利用shot的标签训练一个pseudo label分类器
                   print("don't use structure")
                   idx_train  = self.data.train_mask.nonzero().squeeze().cpu()
@@ -578,7 +613,7 @@ class NodeTask(BaseTask):
                   
                   # 对于'RobustPrompt_T','RobustPrompt_Tplus'扩展没有被扰动的部分（扩展伪标签）
                   # 对于'RobustPrompt_I'，我们利用训练好的pseudo_model直接训练一个鲁棒的提示
-                  if self.prompt_type in ['RobustPrompt_T','RobustPrompt_Tplus']: # 扩展没有被扰动的部分（扩展伪标签）
+                  if self.prompt_type in ['RobustPrompt-GPF','RobustPrompt-GPFplus']: # 扩展没有被扰动的部分（扩展伪标签）
                         logits = pseudo_model(self.data.x.to(self.device)).cpu()
                         pseudo_labels = self.data.y.clone()
                         idx_train_regenerate, pseudo_labels = get_psu_labels(logits, pseudo_labels, idx_train, idx_test, k=k, append_idx=True) # 7 * 80 = 560 or + 7 = 630    1 shot
@@ -695,7 +730,7 @@ class NodeTask(BaseTask):
 
 
             # for all-in-one and Gprompt we use k-hop subgraph
-            if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt_I']:
+            if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt-I']:
                   train_loader = DataLoader(self.train_dataset, batch_size=100, shuffle=True)
                   test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
                   val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
@@ -904,19 +939,24 @@ class NodeTask(BaseTask):
                   elif self.prompt_type in ['GPF-Tranductive', 'GPF-plus-Tranductive']:
                         loss = self.GPFTranductivetrain(self.data)
                         # val_acc,  F1    = GPFTranductiveEva(self.data, self.data.val_mask, self.gnn, self.prompt, self.answering, self.output_dim, self.device)
+
+
                   # add by ssh
-                  elif self.prompt_type == 'RobustPrompt_I':
+                  elif self.prompt_type == 'RobustPrompt-I':
                         loss = self.RobustPromptInductiveTrainSynchro(train_loader)
                         # loss = self.RobustPromptInductiveTrain(train_loader)
                         # loss = self.RobustPromptInductiveTrain(train_loader, remaining_loader, pseudo_model)
                         # loss = self.RobustPromptInductiveTrain_KD(train_loader, pseudo_model, pseudo_logits_train)
                         # val_acc, F1    = RobustPromptInductiveEva(val_loader,  'Val',  pseudo_model, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
-
-                  elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
-                        loss = self.RobustPromptTranductivetrain(self.data, idx_train_regenerate, pseudo_labels) # , iid_train, pruned_data, lambda_cmd, lambda_mse
+                  elif self.prompt_type == 'RobustPrompt-T':
+                        loss = self.RobustPromptTranductivetrain(self.data)
+                  elif self.prompt_type in ['RobustPrompt-GPF', 'RobustPrompt-GPFplus']:
+                        loss = self.RobustPromptTranductivetrain_PseudoLabels(self.data, idx_train_regenerate, pseudo_labels) # , iid_train, pruned_data, lambda_cmd, lambda_mse
                         # val_acc,  F1    = RobustPromptTranductiveEva(self.data, self.data.val_mask,   self.gnn, self.prompt, self.answering, self.output_dim, self.device)
 
             
+
+
                   if loss < best:
                         best = loss
                         # best_t = epoch
@@ -954,10 +994,12 @@ class NodeTask(BaseTask):
                         test_acc, F1    = GPFTranductiveEva(self.data, self.data.test_mask,  self.gnn, self.prompt, self.answering, self.output_dim, self.device)
             
                   # add by ssh 
-                  elif self.prompt_type == 'RobustPrompt_I':
+                  elif self.prompt_type == 'RobustPrompt-I':
                         test_acc, F1    = RobustPromptInductiveEva(test_loader, 'test', self.prompt, self.gnn, self.answering, self.output_dim, self.device)
-                  elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus']:
+                  elif self.prompt_type == 'RobustPrompt-T':
                         test_acc, F1    = RobustPromptTranductiveEva(self.data, self.data.test_mask,  self.gnn, self.prompt, self.answering, self.output_dim, self.device)
+                  elif self.prompt_type in ['RobustPrompt-GPF', 'RobustPrompt-GPFplus']:
+                        test_acc, F1    = GPFTranductiveEva(self.data, self.data.test_mask,  self.gnn, self.prompt, self.answering, self.output_dim, self.device)
 
                   # print(f"Final True Accuracy: {test_acc:.4f} | Macro F1 Score: {f1:.4f} | AUROC: {roc:.4f} | AUPRC: {prc:.4f}" )
                   print(f"Final True Accuracy: {test_acc:.4f} | Macro F1 Score: {F1:.4f}" )

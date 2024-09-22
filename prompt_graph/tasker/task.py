@@ -1,6 +1,6 @@
 import torch
 from prompt_graph.model import GAT, GCN, GCov, GIN, GraphSAGE, GraphTransformer
-from prompt_graph.prompt import RobustPrompt_T, RobustPrompt_Tplus, RobustPrompt_I, RobustPrompt_I_Feat, HeavyPrompt, GPPTPrompt,Gprompt, GPF, GPF_plus
+from prompt_graph.prompt import RobustPrompt_GPF, RobustPrompt_GPFplus, RobustPrompt_T, RobustPrompt_I, RobustPrompt_I_Feat, HeavyPrompt, GPPTPrompt,Gprompt, GPF, GPF_plus
 from torch import nn, optim
 from prompt_graph.data import load4graph
 from prompt_graph.prompt import featureprompt, downprompt
@@ -47,7 +47,7 @@ class BaseTask:
         # add by ssh
         # 两种训练优化方式 
         # prompt和anwser头一起优化，为了使用知识蒸馏训练，维度对齐
-        elif self.prompt_type == 'RobustPrompt_I':    
+        elif self.prompt_type == 'RobustPrompt-I':    
             model_param_group = []
             model_param_group.append({"params": self.prompt.parameters()})
             model_param_group.append({"params": self.answering.parameters()})
@@ -57,7 +57,7 @@ class BaseTask:
         #     self.pg_opi = optim.Adam(filter(lambda p: p.requires_grad, self.prompt.parameters()), lr=0.001, weight_decay= 0.00001)
         #     self.answer_opi = optim.Adam(filter(lambda p: p.requires_grad, self.answering.parameters()), lr=0.001, weight_decay= 0.00001)
         #     print('consider add robust regularization and optimizing strategy')
-        elif self.prompt_type in ['RobustPrompt_T', 'RobustPrompt_Tplus','GPF-Tranductive', 'GPF-plus-Tranductive']:
+        elif self.prompt_type in ['RobustPrompt-GPF', 'RobustPrompt-GPFplus', 'RobustPrompt-T', 'GPF-Tranductive', 'GPF-plus-Tranductive']:
             model_param_group = []
             model_param_group.append({"params": self.prompt.parameters()})
             model_param_group.append({"params": self.answering.parameters()})
@@ -79,12 +79,16 @@ class BaseTask:
                 self.optimizer = optim.Adam(self.DownPrompt.parameters(), lr=0.001)
 
 
+
+
     def initialize_lossfn(self):
         self.criterion = torch.nn.CrossEntropyLoss()
         if self.prompt_type == 'Gprompt':
             self.criterion = Gprompt_tuning_loss()
 
             
+
+
     def initialize_prompt(self):
         if self.prompt_type == 'None':
             self.prompt = None
@@ -135,20 +139,18 @@ class BaseTask:
             #     print(name)
             # quit()
 
-        elif self.prompt_type == 'RobustPrompt_I':
-            print("start to realise RobustPrompt_I_Feat")
+        elif self.prompt_type == 'RobustPrompt-I':
             # {'sim_pt': 0.4, 'degree_pt': 2, 'other_pt' : 'all'}
             self.prompt = RobustPrompt_I_Feat(self.input_dim,  muti_defense_pt_dict={'sim_pt': 0.2, 'degree_pt': 3},  use_attention=False,  num_heads=1, kl_global=False, cosine_constraint=True).to(self.device)
-            
-            # print("start to realise RobustPrompt")
-            # self.prompt = RobustPrompt_I(token_dim=self.input_dim, per_graph_token_num=10, num_prompt_graph= self.output_dim, cross_prune=0.1, inner_prune=0.3).to(self.device)
-        elif self.prompt_type == 'RobustPrompt_T':
-            self.prompt = RobustPrompt_T(self.input_dim).to(self.device)
-        elif self.prompt_type == 'RobustPrompt_Tplus':
-            self.prompt = RobustPrompt_Tplus(self.input_dim, 40).to(self.device)
-        
+            # self.prompt = RobustPrompt_I(token_dim=self.input_dim, per_graph_token_num=10, num_prompt_graph= self.output_dim, cross_prune=0.1, inner_prune=0.3).to(self.device)  
+        elif self.prompt_type == 'RobustPrompt-T':
+            # self.prompt = RobustPrompt_T(self.input_dim).to(self.device)    
+            self.prompt = RobustPrompt_T(self.input_dim,  muti_defense_pt_dict={'sim_pt': 0.4, 'degree_pt': 3, 'other_pt' : 'random-0.1'},  use_attention=True,  num_heads=1, cosine_constraint=False).to(self.device)
 
-
+        elif self.prompt_type == 'RobustPrompt-GPF':
+            self.prompt = RobustPrompt_GPF(self.input_dim).to(self.device)
+        elif self.prompt_type == 'RobustPrompt-GPFplus':
+            self.prompt = RobustPrompt_GPFplus(self.input_dim, 40).to(self.device)
         else:
             raise KeyError(" We don't support this kind of prompt.")
 

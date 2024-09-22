@@ -83,7 +83,7 @@ class GCN(torch.nn.Module):
 
             graph_emb = self.pool(node_emb, batch.long())
 
-            if prompt_type in ['RobustPrompt_I']:
+            if prompt_type in ['RobustPrompt-I']:
                 return node_emb, graph_emb
             else:
                 return graph_emb

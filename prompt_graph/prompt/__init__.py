@@ -9,8 +9,8 @@ from .MultiGPrompt import weighted_feature, weighted_prompt, downstreamprompt, f
 
 # add by ssh
 from .RobustPrompt_I_Feat import RobustPrompt_I_Feat
-from .RobustPrompt_I import RobustPrompt_I, LightPrompt
-from .RobustPrompt_T import  RobustPrompt_T, RobustPrompt_Tplus
+from .RobustPrompt_I      import RobustPrompt_I, LightPrompt
+from .RobustPrompt_T      import  RobustPrompt_GPF, RobustPrompt_GPFplus, RobustPrompt_T
 
 from .GPF import GPF, GPF_plus
 

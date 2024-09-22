@@ -30,6 +30,8 @@ class RobustPrompt_I_Feat(torch.nn.Module):
 
 
         # attention  注意要用batch_first 因为nlp默认的是batch_first=False (L,N,Eq) L为目标序列长度，N为批量大小，Eq为查询嵌入维数embed_dim，batch_first=True时(N,L,Eq)
+        # 目前head仅支持1，参数太多会过拟合
+        assert num_heads == 1
         self.attention_layer = torch.nn.MultiheadAttention(embed_dim = self.in_channels * num_heads, num_heads = num_heads, dropout = 0.0, batch_first=True)
         self.readout_token   = torch.nn.Parameter(torch.randn(1, 1, self.in_channels))
         self.reset_parameters()
@@ -44,8 +46,11 @@ class RobustPrompt_I_Feat(torch.nn.Module):
             glorot(self.prompt_out_detect_pt) 
         if 'other_pt' in self.pt_keys:
             glorot(self.prompt_other_pt)
-
+        
         glorot(self.readout_token)
+
+
+
 
 
     def add_pt(self, x: torch.Tensor, specified_prompt):
@@ -91,7 +96,6 @@ class RobustPrompt_I_Feat(torch.nn.Module):
                 node_use_each_pt_whole_batch[pt] = []                              # 用list可以分开存每一个图的pt使用的节点
         node_use_each_pt_whole_batch['g_start_index'] = []
 
-
         graph_mutiftpt = []
         for g in Batch.to_data_list(graph_batch):
             # 首先用0.初始化并拼接所有的pt长度
@@ -110,7 +114,6 @@ class RobustPrompt_I_Feat(torch.nn.Module):
             edge_index = g.edge_index
             # 用于记录当前图中所有defense pt用到的节点
             node_use_pt = torch.tensor([]).to(device)
-
 
 
             if 'sim_pt' in self.pt_keys:
@@ -139,9 +142,6 @@ class RobustPrompt_I_Feat(torch.nn.Module):
                     node_use_each_pt_whole_batch['sim_pt'].append(node_use_sim_pt.tolist())
 
 
-
-
-
             if 'degree_pt' in self.pt_keys:
                 # print('degree_pt : ',self.pt_dict['degree_pt'])
                 deg = degree(col, x.size(0), dtype=x.dtype)
@@ -159,12 +159,8 @@ class RobustPrompt_I_Feat(torch.nn.Module):
                     node_use_each_pt_whole_batch['degree_pt'].append(node_use_degree_pt.tolist())
 
 
-
-
             if 'out_detect_pt' in self.pt_keys:
                 pass
-
-
 
 
             if 'other_pt' in self.pt_keys:
@@ -175,23 +171,22 @@ class RobustPrompt_I_Feat(torch.nn.Module):
                 node_use_no_pt = all_nodes[mask]
                 # 对other节点的选择方式，包括选择所有other节点的'all'方式和从中随机选择一些节点的'random-0.2'方法
                 if self.pt_dict['other_pt'] == 'all':
-                    node_use_no_pt = node_use_no_pt
+                    node_use_other_pt = node_use_no_pt
                 elif self.pt_dict['other_pt'].split('-')[0] == 'random':
                     num_samples     = int(float(self.pt_dict['other_pt'].split('-')[1]) * node_use_no_pt.size(0))
                     random_indices  = torch.randint(0, node_use_no_pt.size(0), (num_samples,))
-                    node_use_no_pt  = node_use_no_pt[random_indices]
+                    node_use_other_pt  = node_use_no_pt[random_indices]
 
 
-                # 将prompt放到当前图中没有用到任何defense pt的节点上
-                g_mutiftpt_record[node_use_no_pt, pt_range_dict['other_pt'][0] : pt_range_dict['other_pt'][1]] = self.prompt_other_pt
-                # 记录每个图没有用到任何defense pt的node 全局的角度 注意这里一定要放在对当前图处理完后面，要不会改变节点索引
-                node_use_no_pt = node_use_no_pt + whole_batch_start_index # 从当前图的start index进行记录  注意！不要用+=，会出现无法计算梯度问题
+                # 将prompt放到当前图中没有用到任何defense pt的other节点上
+                g_mutiftpt_record[node_use_other_pt, pt_range_dict['other_pt'][0] : pt_range_dict['other_pt'][1]] = self.prompt_other_pt
+                # 记录每个图没有用到任何defense pt但添加了other_pt的node 全局的角度 注意这里一定要放在对当前图处理完后面，要不会改变节点索引
+                node_use_other_pt = node_use_other_pt + whole_batch_start_index # 从当前图的start index进行记录  注意！不要用+=，会出现无法计算梯度问题
                 if self.kl_global:
-                    node_use_each_pt_whole_batch['other_pt'] = torch.concat((node_use_each_pt_whole_batch['other_pt'], node_use_no_pt))
+                    node_use_each_pt_whole_batch['other_pt'] = torch.concat((node_use_each_pt_whole_batch['other_pt'], node_use_other_pt))
                 else:
-                    node_use_each_pt_whole_batch['other_pt'].append(node_use_no_pt.tolist())
+                    node_use_each_pt_whole_batch['other_pt'].append(node_use_other_pt.tolist())
     
-
 
 
             g_mutiftpt_record = g_mutiftpt_record.reshape(g.num_nodes, len(self.pt_keys), self.in_channels)
@@ -226,10 +221,15 @@ class RobustPrompt_I_Feat(torch.nn.Module):
             node_use_each_pt_whole_batch['g_start_index'].append(whole_batch_start_index)
             whole_batch_start_index = whole_batch_start_index + g.num_nodes   # 注意！不要用+=，会出现无法计算梯度问题, 常见的 inplace operation  x+=y，x*=y 是 inplace operation ，可以改为 x=x+y 和 x=x*y
             
-
-
         graph_mutiftpt_batch = Batch.from_data_list(graph_mutiftpt)
         return graph_mutiftpt_batch, node_use_each_pt_whole_batch
+
+
+
+
+
+
+
 
 
 
@@ -242,7 +242,7 @@ class RobustPrompt_I_Feat(torch.nn.Module):
         for batch_id, train_batch in enumerate(train_loader):  
             train_batch = train_batch.to(device)
             prompted_graph, node_use_each_pt_whole_batch = self.forward(train_batch, tag, device)
-            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt_I')
+            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt-I')
             pre = answering(graph_emb)
 
             ######################################################################################
@@ -298,8 +298,9 @@ class RobustPrompt_I_Feat(torch.nn.Module):
                     global_no_pt_batch = torch.stack(global_no_pt_batch)     # [ shot_num * num_class, hid_dim ] 每个图一个
                     loss_pt_kl = torch.nn.KLDivLoss()(F.log_softmax(global_pt_batch / temperature), F.softmax(global_no_pt_batch / temperature)) 
                     loss_pt += loss_pt_kl
-            ######################################################################################
             # print("loss_pt : ", loss_pt)
+            ######################################################################################
+            
 
 
 

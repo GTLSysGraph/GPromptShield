@@ -1,6 +1,8 @@
 import torchmetrics
 import torch
 from tqdm import tqdm
+import torch.nn.functional as F
+from torch_geometric.data import Data
 
 def RobustPromptTranductiveEva(data, mask, gnn, prompt, answering, num_class, device):
     prompt.eval()
@@ -17,8 +19,57 @@ def RobustPromptTranductiveEva(data, mask, gnn, prompt, answering, num_class, de
     # auroc.reset()
     # auprc.reset()
 
-    prompted_x = prompt.add(data.x)
-    out = gnn(prompted_x, data.edge_index)
+
+    # ######################################################################################
+    # # 放在前面: 先修剪图再对特征进行多提示添加
+    # # Prune edge index
+    # edge_index = data.edge_index
+    # cosine_sim = F.cosine_similarity(data.x[edge_index[0]], data.x[edge_index[1]])
+    # # Define threshold t
+    # threshold = 0.05
+    # # Identify edges to keep
+    # keep_edges = cosine_sim >= threshold
+    # # Filter edge_index to only keep edges above the threshold
+    # pruned_edge_index = edge_index[:, keep_edges]
+    # pruned_g  = Data(x=data.x, edge_index=pruned_edge_index, y=data.y)
+    # g_mutiftpt, _ = prompt.add_muti_pt(pruned_g, device)
+    # out = gnn(g_mutiftpt.x, g_mutiftpt.edge_index)
+    # ######################################################################################
+
+
+
+
+    ######################################################################################
+    # 前后都不处理，直接加提示
+    g_mutiftpt, _ = prompt.add_muti_pt(data, device)
+    out = gnn(g_mutiftpt.x, g_mutiftpt.edge_index)
+    ######################################################################################
+    
+
+
+    # ######################################################################################
+    # # 放在后面： 对图的特征进行多提示添加后根据添加prompt的特征修剪图
+    # g_mutiftpt, _ = prompt.add_muti_pt(data, device)
+    # # 根据添加后的提示对图进行修剪
+    # # Prune edge index
+    # edge_index = g_mutiftpt.edge_index
+    # cosine_sim = F.cosine_similarity(g_mutiftpt.x[edge_index[0]], g_mutiftpt.x[edge_index[1]])
+    # # Define threshold t
+    # threshold = 0.2
+    # # Identify edges to keep
+    # keep_edges = cosine_sim >= threshold
+    # # Filter edge_index to only keep edges above the threshold
+    # pruned_edge_index = edge_index[:, keep_edges]
+    # pruned_g_mutiftpt  = Data(x=g_mutiftpt.x, edge_index=pruned_edge_index, y=g_mutiftpt.y)
+    # out = gnn(pruned_g_mutiftpt.x, pruned_g_mutiftpt.edge_index)
+    # ######################################################################################
+
+
+
+
+
+
+    
     if answering:
         out = answering(out)  
     pred = out.argmax(dim=1)  
