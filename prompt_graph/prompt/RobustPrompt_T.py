@@ -181,7 +181,7 @@ class RobustPrompt_T(torch.nn.Module):
 
             # 利用attention得到prompt之间的关系
             g_mutiftpt_output, g_mutiftpt_attn_weights =  self.attention_layer(g_mutiftpt_record, g_mutiftpt_record, g_mutiftpt_record, key_padding_mask = key_padding_mask)
-            g_mutiftpt_output = torch.nn.functional.normalize(g_mutiftpt_record, p=1, dim=2) # 为了数据的稳定！非常关键！要不都是nan
+            g_mutiftpt_output = torch.nn.functional.normalize(g_mutiftpt_record, p=1, dim=2) # 为了数据的稳定！非常关键！要不都是nan   p=1好像比p=2要好
             # 对每个节点attention后所有的prompt求avg得到每个节点的最终混合prompt
             # g_mutiftpt_final_output = torch.mean(g_mutiftpt_output, dim=1) # 求平均，不好，因为有一些padding的embedding
             g_mutiftpt_final_output = g_mutiftpt_output[:,0,:] # BERT的方法，利用添加的readout_token的embedding
