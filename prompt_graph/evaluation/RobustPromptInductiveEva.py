@@ -3,7 +3,7 @@ import torch
 from torch_geometric.data import Batch, Data
 import torch.nn.functional as F
 
-def RobustPromptInductiveEva(loader, tag, prompt, gnn, answering, num_class, device):
+def RobustPromptInductiveEva(loader, gnn, prompt, answering, num_class, device):
         prompt.eval()
         answering.eval()
         accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_class).to(device)
@@ -39,14 +39,14 @@ def RobustPromptInductiveEva(loader, tag, prompt, gnn, answering, num_class, dev
             #     pruned_batch_before_pt_list.append(pruned_g_before_pt)
             # pruned_batch_before_pt = Batch.from_data_list(pruned_batch_before_pt_list)
             # prompted_graph, _      = prompt(pruned_batch_before_pt, tag, device)
-            # node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt_I')
+            # node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt-I')
             # ######################################################################################
 
 
             ######################################################################################
-            # 前后都不处理，直接加提示
-            prompted_graph, _ = prompt(batch, tag, device)
-            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt_I')
+            # 前后都不处理，直接加提示 这里需要注意下，inductive的修剪图是加在Tune里面的
+            prompted_graph, _   = prompt(batch, device)
+            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt-I')
             ######################################################################################
 
 
@@ -59,7 +59,7 @@ def RobustPromptInductiveEva(loader, tag, prompt, gnn, answering, num_class, dev
             #     edge_index = g_pt.edge_index
             #     cosine_sim = F.cosine_similarity(g_pt.x[edge_index[0]], g_pt.x[edge_index[1]])
             #     # Define threshold t
-            #     threshold = 0.2
+            #     threshold = 0.5
             #     # Identify edges to keep
             #     keep_edges = cosine_sim >= threshold
             #     # Filter edge_index to only keep edges above the threshold
@@ -67,7 +67,7 @@ def RobustPromptInductiveEva(loader, tag, prompt, gnn, answering, num_class, dev
             #     pruned_g_after_pt  = Data(x=g_pt.x, edge_index=pruned_edge_index, y=g_pt.y)
             #     pruned_batch_after_pt_list.append(pruned_g_after_pt)
             # pruned_batch_after_pt = Batch.from_data_list(pruned_batch_after_pt_list)
-            # node_emb, graph_emb = gnn(pruned_batch_after_pt.x, pruned_batch_after_pt.edge_index, pruned_batch_after_pt.batch,  prompt_type = 'RobustPrompt_I')
+            # node_emb, graph_emb = gnn(pruned_batch_after_pt.x, pruned_batch_after_pt.edge_index, pruned_batch_after_pt.batch,  prompt_type = 'RobustPrompt-I')
             # ######################################################################################
 
 
@@ -76,7 +76,7 @@ def RobustPromptInductiveEva(loader, tag, prompt, gnn, answering, num_class, dev
             pred = pre.argmax(dim=1)  
             acc = accuracy(pred, batch.y)
             ma_f1 = macro_f1(pred, batch.y)
-            print("{} Batch {} Acc: {:.4f} | Macro-F1: {:.4f}".format(tag, batch_id, acc.item(), ma_f1.item()))
+            print("Batch {} Acc: {:.4f} | Macro-F1: {:.4f}".format(batch_id, acc.item(), ma_f1.item()))
 
         acc = accuracy.compute()
         ma_f1 = macro_f1.compute()

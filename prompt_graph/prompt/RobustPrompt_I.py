@@ -1,388 +1,389 @@
 import torch
+from torch_geometric.nn.inits import glorot
 import torch.nn.functional as F
 from torch_geometric.data import Batch, Data
-from prompt_graph.utils import act,cmd
-from deprecated.sphinx import deprecated
-from sklearn.cluster import KMeans
-from torch_geometric.nn.inits import glorot
-from kmeans_pytorch import kmeans 
-from sklearn.cluster import KMeans
+from torch_geometric.utils import degree
 import numpy as np
 
-class LightPrompt(torch.nn.Module):
-    def __init__(self, token_dim, token_num_per_robust_pg, num_robust_pg, inner_prune=None):
-        """
-        :param token_dim:
-        :param token_num_per_group:
-        :param group_num:   the total token number = token_num_per_group*group_num, in most cases, we let group_num=1.
-                            In prompt_w_o_h mode for classification, we can let each class correspond to one group.
-                            You can also assign each group as a prompt batch in some cases.
+# Done! next step
+class RobustPrompt_I(torch.nn.Module):
+    def __init__(self, in_channels: int, muti_defense_pt_dict, use_attention, num_heads, kl_global, cosine_constraint, pt_threshold, temperature, weight_mse, weight_kl, weight_constraint):
+        super(RobustPrompt_I, self).__init__()
 
-        :param prune_thre: if inner_prune is None, then all inner and cross prune will adopt this prune_thre
-        :param isolate_tokens: if Trure, then inner tokens have no connection.
-        :param inner_prune: if inner_prune is not None, then cross prune adopt prune_thre whereas inner prune adopt inner_prune
-        """
-        super(LightPrompt, self).__init__()
-        self.num_robust_pg = num_robust_pg
+        self.in_channels       = in_channels
+        self.pt_dict           = muti_defense_pt_dict
+        self.pt_keys           = self.pt_dict.keys()
 
-        self.inner_prune = inner_prune
-        self.robust_token_list = torch.nn.ParameterList(
-            [torch.nn.Parameter(torch.empty(token_num_per_robust_pg, token_dim)) for i in range(num_robust_pg)])
+        self.use_attention     = use_attention       # 是否使用attention融合不同prompt
+        self.kl_global         = kl_global           # kl散度是全局还是局部
+        self.cosine_constraint = cosine_constraint   # 是否用cosine计算prompt间距离
+        self.pt_threshold      = pt_threshold        # 添加final prompt后的修剪超参数
 
-        self.token_init(init_method="kaiming_uniform")
+        # Tune过程中的不同loss权重和temperature
+        self.temperature       = temperature
+        self.weight_mse        = weight_mse
+        self.weight_kl         = weight_kl
+        self.weight_constraint = weight_constraint
 
-    def token_init(self, init_method="kaiming_uniform"):
-        if init_method == "kaiming_uniform":
-            for token in self.robust_token_list:
-                torch.nn.init.kaiming_uniform_(token, nonlinearity='leaky_relu', mode='fan_in', a=0.01)
-        else:
-            raise ValueError("only support kaiming_uniform init, more init methods will be included soon")
-
-    def inner_structure_update(self):
-        return self.token_view()
-
-
-    def token_view(self, ):
-        """
-        each token group is viewed as a prompt sub-graph.
-        turn the all groups of tokens as a batch of prompt graphs.
-        :return:
-        """
-        pg_list = []
-        for i, tokens in enumerate(self.robust_token_list):
-            # pg_list.append(tokens)
-
-            # inner link: token-->token
-            token_dot = torch.mm(tokens, torch.transpose(tokens, 0, 1))
-            token_sim = torch.sigmoid(token_dot)  # 0-1
-
-            inner_adj = torch.where(token_sim < self.inner_prune, 0, token_sim)
-            edge_index = inner_adj.nonzero().t().contiguous()
-            # 这里pg的y其实是没有用的，只是一个不同prompt图的标识，能不能考虑每个类生成一个prompt
-            pg_list.append(Data(x=tokens, edge_index=edge_index, y=torch.tensor([i]).long()))
-
-        # pg_batch = Batch.from_data_list(pg_list)
-        pg_batch = pg_list
-        return pg_batch
+        
+        print('use RobustPrompt Inductive')
+        print('defense pt dict : ', self.pt_dict)
+        print('use_attention : ',self.use_attention)
+        print('kl_global : ',self.kl_global)
+        print('cosine_constraint : ',self.cosine_constraint)
+        print('pt_threshold : ',self.pt_threshold)
+        print('temperature : ',self.temperature)
+        print('weight_mse',self.weight_mse)
+        print('weight_kl : ',self.weight_kl)
+        print('weight_constraint : ',self.weight_constraint)
 
 
-class RobustPrompt_I(LightPrompt):
-    def __init__(self, token_dim, per_graph_token_num, num_prompt_graph = 1,cross_prune=0.1, inner_prune=0.01):
-        super(RobustPrompt_I, self).__init__(token_dim, per_graph_token_num, num_prompt_graph, inner_prune)  # only has one prompt graph.
-        self.num_prompt_graph      = num_prompt_graph
-        self.per_graph_token_num   = per_graph_token_num
-        self.cross_prune           = cross_prune
-        # self.token_num             = token_num
+
+        if 'sim_pt' in self.pt_keys:
+            self.prompt_sim_pt              = torch.nn.Parameter(torch.Tensor(1, self.in_channels))
+        if 'degree_pt' in self.pt_keys:
+            self.prompt_degree_pt           = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
+        if 'out_detect_pt' in self.pt_keys:
+            self.prompt_out_detect_pt       = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
+        if 'other_pt' in self.pt_keys:
+            self.prompt_other_pt            = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
 
 
-    def add_robust_prompt(self, graph_batch: Batch):
-        pg = self.inner_structure_update()  # batch of prompt graph (currently only 1 prompt graph in the batch)
+        # attention  注意要用batch_first 因为nlp默认的是batch_first=False (L,N,Eq) L为目标序列长度，N为批量大小，Eq为查询嵌入维数embed_dim，batch_first=True时(N,L,Eq)
+        # 目前head仅支持1，参数太多会过拟合
+        assert num_heads == 1
+        self.attention_layer = torch.nn.MultiheadAttention(embed_dim = self.in_channels * num_heads, num_heads = num_heads, dropout = 0.0, batch_first=True)
+        self.readout_token   = torch.nn.Parameter(torch.randn(1, 1, self.in_channels))
+        self.reset_parameters()
 
-        inner_edge_index = pg.edge_index
-        token_num = pg.x.shape[0]
 
-        robust_prompt_graph_list = []
+    def reset_parameters(self):
+        if 'sim_pt' in self.pt_keys:
+            glorot(self.prompt_sim_pt)
+        if 'degree_pt' in self.pt_keys:
+            glorot(self.prompt_degree_pt)
+        if 'out_detect_pt' in self.pt_keys:
+            glorot(self.prompt_out_detect_pt) 
+        if 'other_pt' in self.pt_keys:
+            glorot(self.prompt_other_pt)
+        glorot(self.readout_token)
+
+
+
+    def add_pt(self, x: torch.Tensor, specified_prompt):
+        return x + specified_prompt  
+
+
+
+    def get_muti_prompt(self, node_use_each_pt_whole_batch, device):
+        muti_prompt   = []
+        overlap_list  = []
+        for name, param in self.named_parameters():
+            if name.startswith('prompt'):    
+                muti_prompt.append(param) # shape torch.Size([1, 1433])
+                node_use_each_pt = node_use_each_pt_whole_batch[name.split('_', 1)[1]]
+                # 这里是判断是 tensor还是list 因为用self.kl_global, 全局做kl是tensor，局部做kl得到的是list
+                if not self.kl_global:
+                    node_use_each_pt =  torch.tensor(np.concatenate(node_use_each_pt)).to(device)
+                overlap_list.append(node_use_each_pt) # example prompt[0] _ sim_pt[1] -> node_use_each_pt_whole_batch['sim_pt']
+
+        muti_prompt = torch.cat(muti_prompt, dim = 0) # 注意！stack和cat不一样，如果有两个形状为(a, b)的张量，用torch.stack()在第一个维度上将它们堆叠成一个形状为(2, a, b)的新张量，会增加一个维度,这里用cat就可以，如果用stack需要squeeze(1)，压缩中间的维度
+
+        overlap_matrix = torch.eye(len(overlap_list)).to(device)
+        for i in range(len(overlap_list)):
+            for j in range(i + 1, len(overlap_list)):
+                # 两个prompt使用的节点交集 两种方式结果相同
+                mask = torch.isin(overlap_list[i], overlap_list[j]) # mask = torch.isin(overlap_list[j], overlap_list[i])
+                overlap_nodes = overlap_list[i][mask]               # overlap_nodes = overlap_list[j][mask]
+                #  两个prompt使用的节点并集
+                union_nodes = torch.unique(torch.cat((overlap_list[i],overlap_list[j])))
+                overlap_matrix[i][j] = len(overlap_nodes) / len(union_nodes)
+                overlap_matrix[j][i] = len(overlap_nodes) / len(union_nodes)
+        return muti_prompt, overlap_matrix
+
+
+
+
+    def forward(self, graph_batch: Batch, device):
+        # 记录每个batch中所有图在每个prompt上用到的节点, 同时记录一个start index，在每个图处理完后加上图的节点数量以作为下一个图的开始索引
+        whole_batch_start_index = 0
+        node_use_each_pt_whole_batch = {}
+        for pt in self.pt_keys:
+            if self.kl_global:
+                node_use_each_pt_whole_batch[pt] = torch.tensor([]).to(device)     # 用tensor直接把所有batch的都保存
+            else:
+                node_use_each_pt_whole_batch[pt] = []                              # 用list可以分开存每一个图的pt使用的节点
+        node_use_each_pt_whole_batch['g_start_index'] = []
+
+        graph_mutiftpt = []
         for g in Batch.to_data_list(graph_batch):
-            g_edge_index = g.edge_index + token_num # 相当于每一个节点的编号+token_num,把前面的编号留给pg图
-
-            cross_dot = torch.mm(pg.x, torch.transpose(g.x, 0, 1))
-            cross_sim = torch.sigmoid(cross_dot)  # 0-1 from prompt to input graph
-            cross_adj = torch.where(cross_sim < -1, 0, cross_sim)
+            # 首先用0.初始化并拼接所有的pt长度
+            g_mutiftpt_record = torch.zeros(g.num_nodes, len(self.pt_keys) * self.in_channels)
+            g_mutiftpt_record = g_mutiftpt_record.to(device)
             
-            cross_edge_index = cross_adj.nonzero().t().contiguous()
-            cross_edge_index[1] = cross_edge_index[1] + token_num
+            # 记录拼接所有pt的整体向量中每个pt的位置
+            pt_range_dict = {}
+            range_start = 0
+            for pt in self.pt_keys:
+                pt_range_dict[pt] = [range_start, range_start + self.in_channels]
+                range_start += self.in_channels
+            # {'sim_pt': [0, 1433], 'degree_pt': [1433, 2866], 'other_pt': [2866, 4299]}
+
+            x = g.x
+            edge_index = g.edge_index
+            # 用于记录当前图中所有defense pt用到的节点
+            node_use_pt = torch.tensor([]).to(device)
+
+
+            if 'sim_pt' in self.pt_keys:
+                # print('sim_pt : ',self.pt_dict['sim_pt'])
+                # 相似度(cos (θ))值范围从-1(不相似)到+1(非常相似) nan代表孤立节点，对结果不造成影响
+                x_norm = x / torch.sqrt(torch.sum(x * x,dim=1)).unsqueeze(-1)
+                e = torch.sum(x_norm[edge_index[0]] * x_norm[edge_index[1]], dim = 1).unsqueeze(-1)
+                row, col = edge_index
+                c = torch.zeros(x_norm.shape[0], 1).to(device)
+                c = c.scatter_add_(dim=0, index=col.unsqueeze(1), src=e)
+                deg = degree(col, x.size(0), dtype=x.dtype).unsqueeze(-1) 
+                csim = c / deg
+                csim = csim.squeeze()
+                node_use_sim_pt = torch.nonzero(csim <= self.pt_dict['sim_pt']).squeeze(-1) # 不能直接用squeeze()，会把所有1维度都压缩，当只有单个节点会有问题
+  
+
+                # 记录当前图中用到sim pt的node 局部的角度，为了后面筛选出一个图中没有用到任何defense pt的node
+                node_use_pt = torch.concat((node_use_pt, node_use_sim_pt))
+                # 将prompt放到当前图中用sim pt的指定节点上
+                g_mutiftpt_record[node_use_sim_pt, pt_range_dict['sim_pt'][0] : pt_range_dict['sim_pt'][1]] = self.prompt_sim_pt
+                # 记录每个图用到sim pt的node   全局的角度  注意这里一定要放在对当前图处理完后面，要不会改变节点索引
+                node_use_sim_pt = node_use_sim_pt + whole_batch_start_index # 从当前图的start index进行记录  注意！不要用+=，会出现无法计算梯度问题
+                if self.kl_global:
+                    node_use_each_pt_whole_batch['sim_pt'] = torch.concat((node_use_each_pt_whole_batch['sim_pt'], node_use_sim_pt))
+                else:
+                    node_use_each_pt_whole_batch['sim_pt'].append(node_use_sim_pt.tolist())
+
+
+            if 'degree_pt' in self.pt_keys:
+                # print('degree_pt : ',self.pt_dict['degree_pt'])
+                deg = degree(col, x.size(0), dtype=x.dtype)
+                node_use_degree_pt = torch.nonzero(deg <= self.pt_dict['degree_pt']).squeeze(-1) # 不能直接用squeeze()，会把所有1维度都压缩，当只有单个节点会有问题
+
+                # 记录当前图中用到degree pt的node 局部的角度，为了后面筛选出一个图中没有用到任何defense pt的node
+                node_use_pt = torch.concat((node_use_pt, node_use_degree_pt))
+                # 将prompt放到当前图中用degree pt的指定节点上
+                g_mutiftpt_record[node_use_degree_pt, pt_range_dict['degree_pt'][0] : pt_range_dict['degree_pt'][1]] = self.prompt_degree_pt
+                # 记录每个图用到degree pt的node 全局的角度  注意这里一定要放在对当前图处理完后面，要不会改变节点索引
+                node_use_degree_pt = node_use_degree_pt + whole_batch_start_index # 从当前图的start index进行记录  注意！不要用+=，会出现无法计算梯度问题
+                if self.kl_global:
+                    node_use_each_pt_whole_batch['degree_pt'] = torch.concat((node_use_each_pt_whole_batch['degree_pt'],  node_use_degree_pt))
+                else:
+                    node_use_each_pt_whole_batch['degree_pt'].append(node_use_degree_pt.tolist())
+
+
+            if 'out_detect_pt' in self.pt_keys:
+                pass
+
+
+            if 'other_pt' in self.pt_keys:
+                # print('use other_pt, tips: Apply to the remaining nodes without adding pt! IF only other_pt,equal GPF')
+                all_nodes    = torch.arange(0, g.num_nodes).to(device)
+                all_pt_nodes = torch.unique(node_use_pt)
+                mask = ~torch.isin(all_nodes, all_pt_nodes)
+                node_use_no_pt = all_nodes[mask]
+                # 对other节点的选择方式，包括选择所有other节点的'all'方式和从中随机选择一些节点的'random-0.2'方法
+                if len(node_use_no_pt) > 0:
+                    if self.pt_dict['other_pt'] == 'all':
+                        node_use_other_pt = node_use_no_pt
+                    elif self.pt_dict['other_pt'].split('-')[0] == 'random':
+                        num_samples     = int(float(self.pt_dict['other_pt'].split('-')[1]) * node_use_no_pt.size(0))
+                        random_indices  = torch.randint(0, node_use_no_pt.size(0), (num_samples,))
+                        node_use_other_pt  = node_use_no_pt[random_indices]
+                else:
+                    node_use_other_pt = torch.tensor([], dtype=node_use_no_pt.dtype).to(device)
+
+                # 将prompt放到当前图中没有用到任何defense pt的other节点上
+                g_mutiftpt_record[node_use_other_pt, pt_range_dict['other_pt'][0] : pt_range_dict['other_pt'][1]] = self.prompt_other_pt
+                # 记录每个图没有用到任何defense pt但添加了other_pt的node 全局的角度 注意这里一定要放在对当前图处理完后面，要不会改变节点索引
+                node_use_other_pt = node_use_other_pt + whole_batch_start_index # 从当前图的start index进行记录  注意！不要用+=，会出现无法计算梯度问题
+                if self.kl_global:
+                    node_use_each_pt_whole_batch['other_pt'] = torch.concat((node_use_each_pt_whole_batch['other_pt'], node_use_other_pt))
+                else:
+                    node_use_each_pt_whole_batch['other_pt'].append(node_use_other_pt.tolist())
+    
+
+
+            g_mutiftpt_record = g_mutiftpt_record.reshape(g.num_nodes, len(self.pt_keys), self.in_channels)
+            ######################################################################################
+            if self.use_attention:
+                # 用self-attention
+                # 加一个readout_token
+                g_mutiftpt_record = torch.cat([self.readout_token.expand(g.num_nodes, 1, self.in_channels), g_mutiftpt_record], dim=1)
+                # padding位置
+                padding = torch.zeros(self.in_channels).to(device)
+                key_padding_mask = torch.all(g_mutiftpt_record == padding, dim=-1, keepdim=True).squeeze(-1)
+                # 利用attention得到prompt之间的关系
+                g_mutiftpt_output, g_mutiftpt_attn_weights =  self.attention_layer(g_mutiftpt_record, g_mutiftpt_record, g_mutiftpt_record, key_padding_mask = key_padding_mask)
+                # 对每个节点attention后所有的prompt求avg得到每个节点的最终混合prompt
+                # g_mutiftpt_final_output = torch.mean(g_mutiftpt_output, dim=1) # 求平均，不好，因为有一些padding的embedding
+                g_mutiftpt_final_output = g_mutiftpt_output[:,0,:] # BERT的方法，利用添加的readout_token的embedding
+            else:    
+                # 用求平均 如果只用'other_pt'就完全复刻GPF
+                padding = torch.zeros(self.in_channels).to(device)
+                # 找到每个节点prompt record中不为padding的行
+                wo_padding_mask = torch.all(g_mutiftpt_record != padding, dim=-1, keepdim=True)
+                # 统计每个节点不为padding的prompt数量
+                node_prompt_len = wo_padding_mask.sum(1)
+                g_mutiftpt_final_output = torch.where(node_prompt_len != 0, g_mutiftpt_record.sum(1) / node_prompt_len, padding)
+            ######################################################################################
             
-            x = torch.cat([pg.x, g.x], dim=0)
-            y = g.y
-
-            edge_index = torch.cat([inner_edge_index, g_edge_index, cross_edge_index], dim=1)
-            # edge_index = torch.cat([g_edge_index, cross_edge_index], dim=1)
-            
-            data = Data(x=x, edge_index=edge_index, y=y)
-            robust_prompt_graph_list.append(data)
-
-        robust_graphp_batch = Batch.from_data_list(robust_prompt_graph_list)
-        return robust_graphp_batch
 
 
 
-    def forward(self, graph_batch, pseudo_model):
-        """
-        TODO: although it recieves graph batch, currently we only implement one-by-one computing instead of batch computing
-        TODO: we will implement batch computing once we figure out the memory sharing mechanism within PyG
-        :param graph_batch:
-        :return:
-        """
-
-        pg = self.inner_structure_update()  # batch of prompt graph (currently only 1 prompt graph in the batch)
-        # inner_edge_index = pg.edge_index
-        # token_num = pg.x.shape[0]
-
-        # pg = self.robust_token_list
-        self.total_token_num = self.num_prompt_graph * self.per_graph_token_num
-
-        num_nodes_prompt_graphs  = []
-        num_nodes_induced_graphs = []
-        re_graph_list = []
-
-        pruned_graph_list = []
-        prompt_graph_list = []
-
-
-        for g in Batch.to_data_list(graph_batch):
-
-            # 我们假定预训练过程中用到的数据集是干净的，但是在下游任务上的图是被攻击或扰动的，因此可以认为预训练得到的模型在干净图上具有很好的效果
-
-
-            # # 得到根据相似度过滤得到修剪图，我们认为预训练后的模型在过滤图上的结果是可靠的
-            # ##################################################
+            # *****************************************  Prompt Pruned PART  ***************************************** #
+            # # ######################################################################################
+            # # 放在前面: 先修剪图再对特征进行多提示添加
             # # Prune edge index
             # edge_index = g.edge_index
             # cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
             # # Define threshold t
-            # threshold = 0.1
+            # threshold = 0.05
             # # Identify edges to keep
             # keep_edges = cosine_sim >= threshold
             # # Filter edge_index to only keep edges above the threshold
-            # pruned_edge_index = edge_index[:, keep_edges]
-            # pruned_g          = Data(x=g.x, edge_index=pruned_edge_index)
-            # # 这里后面返回两个batch，一个batch是filtered graph batch，另一个batch是prompt batch
-            # pruned_graph_list.append(pruned_g)
-            # # get filtered graph batch 
-            # ##################################################
+            # pruned_edge_index    = edge_index[:, keep_edges]
+            # pruned_g_before_pt   = Data(x=g.x, edge_index=pruned_edge_index, y=g.y)
+            # pruned_g_before_pt.x = self.add_pt(pruned_g_before_pt.x, g_mutiftpt_final_output)
+            # graph_mutiftpt.append(pruned_g_before_pt)
+            # # #####################################################################################
+
+            # # ######################################################################################
+            # # # 前后都不处理，直接加提示
+            # g.x = self.add_pt(g.x, g_mutiftpt_final_output)
+            # graph_mutiftpt.append(g)
+            # # ######################################################################################
+
+            ######################################################################################
+            # 放在后面： 对图的特征进行多提示添加后根据添加prompt的特征修剪图
+            g.x = self.add_pt(g.x, g_mutiftpt_final_output)
+            # Prune edge index
+            edge_index = g.edge_index
+            cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
+            # Define threshold t
+            threshold = self.pt_threshold
+            # Identify edges to keep
+            keep_edges = cosine_sim >= threshold
+            # Filter edge_index to only keep edges above the threshold
+            pruned_edge_index = edge_index[:, keep_edges]
+            pruned_g_after_pt= Data(x=g.x, edge_index=pruned_edge_index, y=g.y)
+            graph_mutiftpt.append(pruned_g_after_pt)
+            ######################################################################################
+            # *****************************************  loss PART  ***************************************** #
 
 
-
-
-
-            # # 获得在被攻击后的图上添加prompt的图（通过和过滤图输出结果的逼近从而学习能进行鲁棒prompt的图）
-            # ##################################################
-            # g_edge_index = g.edge_index + token_num # 相当于每一个节点的编号+token_num,把前面的编号留给pg图
-            # # 这里感觉可以做一个可视化的case study的实验，一开始的图同质性假设不好，加上我们的提示图之后，同质性假设变小。
-            # # 计算输入图和pg图之间的关系 如果只有一个图，不用计算图内的关系，如果每个分类都有一个图，则计算每个图内部的链接关系加入进去。相似度计算，torch.cosine
-            # cross_dot = torch.mm(pg.x, torch.transpose(g.x, 0, 1))
-            # cross_sim = torch.sigmoid(cross_dot)  # 0-1 from prompt to input graph
-            # # cross_sim = torch.cosine_similarity(pg.unsqueeze(1), g.x.unsqueeze(0), dim=-1)
-            # cross_adj = torch.where(cross_sim < -1, 0, cross_sim)
-            # cross_edge_index = cross_adj.nonzero().t().contiguous()
-            # cross_edge_index[1] = cross_edge_index[1] + token_num
-            # # print(cross_edge_index.shape)
-            # # print(inner_edge_index.shape)
-            # x = torch.cat([pg.x, g.x], dim=0)
-            # y = g.y
-            # # edge_index = torch.cat([inner_edge_index, g_edge_index, cross_edge_index], dim=1)
-            # edge_index = torch.cat([g_edge_index, cross_edge_index], dim=1)
-            # prompt_g = Data(x=x, edge_index=edge_index, y=y)
-            # prompt_graph_list.append(prompt_g)
-            # ##################################################
-
-
-
-
-            # 获得在被攻击后的图上添加prompt的图，每个图先根据特征做一个聚类，对节点进行一个初分类，然后对于每一个类都添加一个prompt图
-            ##################################################
-            # g.relabel_central_index
-            cluster_y_pred = torch.argmax(pseudo_model(g.x), dim=1)
-            cluster_y_pred = cluster_y_pred.detach()
-            # print(cluster_y_pred[g.relabel_central_index])
-            # print(g.y)
-            # quit()
-
-            # cluster_y_pred, cluster_centers = kmeans(X=g.x, num_clusters=self.num_prompt_graph, distance='euclidean', device=torch.device('cuda')) # 手动关闭了tqdm
-            # cluster_y_pred = torch.tensor(KMeans(n_clusters=self.num_prompt_graph, random_state=0).fit_predict(g.x.detach().cpu()))
-            # cluster_y_pred = torch.ones(g.x.shape[0])
-
-
-            g_edge_index = g.edge_index + self.total_token_num # 相当于每一个节点的编号+token_num,把前面的编号留给pg图
-
-            # print(self.per_graph_token_num)
-            # print(total_token_num)
-
-            total_cross_edge_index = torch.tensor([]).cuda()
-            total_inner_edge_index = torch.tensor([]).cuda()
-            total_x                = torch.tensor([]).cuda()
-            cur_index = 0 # 用于判断
-
-            for pseudo_labels in range(self.num_prompt_graph):
-                
-                pseudo_index = torch.nonzero(cluster_y_pred == pseudo_labels).squeeze(-1) # 注意 .squeeze() 是把所有为 1 的维度删掉,所以加-1只删最后一维
-                # 伪标签存在才可以加提示，在相同伪标签的节点中添加提示
-                if len(pseudo_index) != 0:
-                    # 每个prompt graph内部相连
-                    pseudo_inner_edge_index = pg[pseudo_labels].edge_index + self.per_graph_token_num * pseudo_labels
-                    # 每个prompt graph和具有特定伪标签的节点相链接
-                    pseudo_cross_dot = torch.mm(pg[pseudo_labels].x, torch.transpose(g.x[pseudo_index], 0, 1))
-                    pseudo_cross_sim = torch.sigmoid(pseudo_cross_dot)  # 0-1 from prompt to input graph
-                    pseudo_cross_adj = torch.where(pseudo_cross_sim < self.cross_prune, 0, pseudo_cross_sim)
-                    pseudo_cross_edge_index = pseudo_cross_adj.nonzero().t().contiguous()
-                    # 每个prompt_graph的index要按长度更新，而不是统一更新
-                    pseudo_cross_edge_index[0] = pseudo_cross_edge_index[0] + self.per_graph_token_num * pseudo_labels
-                    # 原始图的index进行统一的total更新
-                    pseudo_cross_edge_index[1] = pseudo_cross_edge_index[1] + self.total_token_num
-
-                    # 结合
-                    total_cross_edge_index = torch.cat([total_cross_edge_index, pseudo_cross_edge_index], dim = 1)
-                    total_inner_edge_index = torch.cat([total_inner_edge_index, pseudo_inner_edge_index], dim = 1)
-                    
-                # 进行一个判断，这里如果图中存在不存在伪标签的节点，就不增加连接关系，而是以孤立节点的形式存在，当然也可以设计成如何辅助其他的提示图
-                total_x = torch.cat([total_x, pg[pseudo_labels].x], dim = 0)
-                assert torch.equal(total_x[cur_index: cur_index + self.per_graph_token_num], pg[pseudo_labels].x)
-                cur_index += self.per_graph_token_num
-                
-            total_x = torch.cat([total_x, g.x], dim = 0)
-            y = g.y
-
-            edge_index = torch.cat([total_inner_edge_index.long(), g_edge_index, total_cross_edge_index.long()], dim=1)
-            prompt_g = Data(x=total_x, edge_index=edge_index, y=y)
-            re_graph_list.append(prompt_g)
+            # 当前图处理结束，保存当前图的start_index, 并且更新whole_batch中下一个图的start_index
+            node_use_each_pt_whole_batch['g_start_index'].append(whole_batch_start_index)
+            whole_batch_start_index = whole_batch_start_index + g.num_nodes   # 注意！不要用+=，会出现无法计算梯度问题, 常见的 inplace operation  x+=y，x*=y 是 inplace operation ，可以改为 x=x+y 和 x=x*y
             
-            num_nodes_induced_graphs.append(g.num_nodes)
-            num_nodes_prompt_graphs.append(prompt_g.num_nodes)
+        graph_mutiftpt_batch = Batch.from_data_list(graph_mutiftpt)
+        return graph_mutiftpt_batch, node_use_each_pt_whole_batch
 
-            # 记录每个添加prompt后图的节点数量
-            ##################################################
-            # num_nodes_prompt_graphs.append(prompt_g.num_nodes)
-            # num_nodes_prompt_graphs.append(total_token_num)
-            ##################################################
-        # pruned_graph_batch = Batch.from_data_list(pruned_graph_list)
-        # prompt_graph_batch = Batch.from_data_list(prompt_graph_list)
-        # return pruned_graph_batch, prompt_graph_batch, num_nodes_prompt_graphs
 
-        graphp_batch = Batch.from_data_list(re_graph_list)
-        return graphp_batch, num_nodes_induced_graphs, num_nodes_prompt_graphs
-        
-    
 
-    def Tune(self, train_loader, remaining_loader, pseudo_model, gnn, answering, lossfn, opi, device):
+
+
+
+
+
+
+
+    def Tune(self, train_loader, gnn, answering, lossfn, opi, device):
         running_loss = 0.
-        for batch_id, train_batch in enumerate(train_loader): 
+        for batch_id, train_batch in enumerate(train_loader):  
             train_batch = train_batch.to(device)
-            
-            #######################################################################################################################
-            # idea 1
-            prompted_graph, num_nodes_induced_graphs, num_nodes_prompt_graphs = self.forward(train_batch, pseudo_model)
-            # print(num_nodes_induced_graphs)
-            # print(num_nodes_prompt_graphs)
-            # print(prompted_graph)
-            # print(prompted_graph.x.shape)
-
-            prompt_node_emb, prompt_graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch, prompt_type = 'RobustPrompt_I')       
+            prompted_graph, node_use_each_pt_whole_batch = self.forward(train_batch, device)
+            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt-I')
+            pre = answering(graph_emb)
 
 
-            prompt_node_emb_token = prompt_node_emb[0: self.total_token_num]
-            # 保存prompt graph上除了token的所有节点的embedding
-            start = num_nodes_prompt_graphs[0]
-            for lenPG in num_nodes_prompt_graphs[1:]:
-                prompt_node_emb_token = torch.cat((prompt_node_emb_token, prompt_node_emb[start: start + self.total_token_num]), dim = 0)
-                start += lenPG 
+            # *********************************************  loss PART  ********************************************* #
+            ######################################################################################
+            # loss_mse 提示整体以同质性假设为导向
+            loss_mse = F.mse_loss(node_emb[prompted_graph.edge_index[0]], node_emb[prompted_graph.edge_index[1]])
+            # print("loss_mse : ", loss_mse)
+            ######################################################################################
+            # loss_pt 针对每一个prompt让筛选节点的平均embedding和未筛选节点的平均embedding相似
+            loss_pt = 0.
+            # 不包括'other_pt'
+            for pt in [key for key in self.pt_keys if key != 'other_pt']:
+                # 全局的kl实现
+                if self.kl_global:
+                    node_use_each_pt_whole_batch[pt] = node_use_each_pt_whole_batch[pt].long()
+                    all_batch_nodes    = torch.arange(0, node_emb.shape[0]).to(device)
+                    mask = ~torch.isin(all_batch_nodes, node_use_each_pt_whole_batch[pt])
+                    node_use_no_pt    = all_batch_nodes[mask]
+                    # 这两个判断很重要，要不loss都是nan 
+                    # kl的前提是必须满足两个判断 一是存在没有加提示的节点embedding作为指导，二是同时加了提示的节点也一定要存在
+                    # 后者虽然概率很小，但也有可能不存在任何一个符合当前提示判断条件的节点，所以只要有一个不满足都不行
+                    if len(node_use_no_pt) == 0 or len(node_use_each_pt_whole_batch[pt]) == 0: # 全局角度，直接跳过这个pt了
+                        continue
+                    global_pt_mean    = torch.mean(node_emb[node_use_each_pt_whole_batch[pt]], dim = 0)    # [ 1, hid_dim ] 一个batch只有一个 全局的
+                    global_no_pt_mean = torch.mean(node_emb[node_use_no_pt], dim = 0)                      # [ 1, hid_dim ] 一个batch只有一个 全局的
+                    loss_pt_kl = torch.nn.KLDivLoss()(F.log_softmax(global_pt_mean / self.temperature), F.softmax(global_no_pt_mean / self.temperature)) 
+                    loss_pt += loss_pt_kl
+             
+                else:
+                # 局部的用batch中每个图的kl实现
+                    global_pt_batch = []
+                    global_no_pt_batch = []
+                    for i in range(len(node_use_each_pt_whole_batch[pt])):
+                        start = node_use_each_pt_whole_batch['g_start_index'][i]
+                        end   = node_use_each_pt_whole_batch['g_start_index'][i+1] if i != len(node_use_each_pt_whole_batch[pt]) - 1 else node_emb.shape[0]
+                        all_nodes_g    = torch.arange(start, end).to(device)
+                        mask = ~torch.isin(all_nodes_g, torch.tensor(node_use_each_pt_whole_batch[pt][i]).to(device))
+                        node_use_no_pt = all_nodes_g[mask]
+                        # 两个判断，局部角度，前者表示当前图不存在没加当前pt的node，但其他图可能存在；后者表示当前图不存在任何一个符合当前提示判断条件的节点，虽然概率很小
+                        if len(node_use_no_pt) == 0 or len(node_use_each_pt_whole_batch[pt][i]) == 0: 
+                            continue # 此时还没有跳出当前pt，只是跳过当前pt下的当前图
+                        local_pt_mean    = torch.mean(node_emb[node_use_each_pt_whole_batch[pt][i]], dim = 0) # mean之后维度torch.Size([256])
+                        local_no_pt_mean = torch.mean(node_emb[node_use_no_pt], dim = 0)                      # mean之后维度torch.Size([256])
+                        global_pt_batch.append(local_pt_mean)
+                        global_no_pt_batch.append(local_no_pt_mean)
+                    # 因为mean之后的维度torch.Size([256])，只有一维，这里用cat需要变成[1,256]再拼接，所以直接用stack更方便，增加了一个维度
+                    # 这里要加一个判断如果当前pt下所有图都没有node_use_no_pt，即global_pt_batch = [], global_no_pt_batch = [] 没有添加任何mean embedding
+                    assert len(global_pt_batch) == len(global_no_pt_batch)
+                    if len(global_pt_batch) == 0 or len(global_no_pt_batch) == 0:
+                        continue # 这里跳出了当前pt，整个batch都判断完了都没有，所以不用进行kl loss
+                    global_pt_batch    = torch.stack(global_pt_batch)        # [ shot_num * num_class, hid_dim ] 每个图一个
+                    global_no_pt_batch = torch.stack(global_no_pt_batch)     # [ shot_num * num_class, hid_dim ] 每个图一个
+                    loss_pt_kl = torch.nn.KLDivLoss()(F.log_softmax(global_pt_batch / self.temperature), F.softmax(global_no_pt_batch / self.temperature)) 
+                    loss_pt += loss_pt_kl
+            # print("loss_pt : ", loss_pt)
+            ######################################################################################
+            # loss_constraint 针对不同的pt进行约束      提供两种方法 norm计算矩阵的二范数，矩阵中所有元素平方求和后开根号
+            muti_prompt, overlap_matrix = self.get_muti_prompt(node_use_each_pt_whole_batch, device)
+            # 这是一个用'sim_pt': 0.6, 'degree_pt': 3, 'other_pt' : 'all'利用cosine_constraint得到的overlap_matrix
+            #     tensor([[1.0000, 0.4804, 0.0000],                     
+            #             [0.4804, 1.0000, 0.0000],                     
+            #             [0.0000, 0.0000, 1.0000]], device='cuda:0')
+            # 可以看到other和其他的pt根据节点重合度都为0，但sim_pt和degree_pt有交集
+            if muti_prompt.shape[0] >= 2:
+                # 方法一： 用cos相似度
+                if self.cosine_constraint:
+                    dot_product = torch.matmul(muti_prompt, muti_prompt.T)
+                    norms = torch.norm(muti_prompt, dim=1)
+                    muti_prompt_matrix = dot_product / (norms[:, None] * norms[None, :])
+                    loss_constraint = torch.norm(muti_prompt_matrix - overlap_matrix)
+                # 方法二： 和GPPT一样使用dot
+                else:
+                    loss_constraint = torch.norm(torch.mm(muti_prompt, muti_prompt.T) - overlap_matrix)
+            else:
+                loss_constraint = 0.
+            # print("loss_constraint : ", loss_constraint)
+            ######################################################################################
+            # *********************************************  loss PART  ********************************************* #
 
-            # print(prompt_node_emb_token.shape)
-            loss_mse = F.mse_loss(prompt_node_emb[prompted_graph.edge_index[0]], prompt_node_emb[prompted_graph.edge_index[1]])
-            # print(loss_mse)
-            pre = answering(prompt_graph_emb)
-            train_loss = lossfn(pre, train_batch.y) + loss_mse
-         
-            #######################################################################################################################
 
-
-            #######################################################################################################################
-            # idea 2
-            # pruned_graph, prompt_graph, num_nodes_prompt_graphs = self.forward(train_batch)
-            # 方法一，让修建图和提示图输出embedding相同
-            # inner loss : Node embedding alignment.
-            # 得到pruned graph的emb和prompt graph的emb
-            # pruned_node_emb, pruned_graph_emb = gnn(pruned_graph.x, pruned_graph.edge_index, pruned_graph.batch, prompt_type = 'RobustPrompt_I')
-            # prompt_node_emb, prompt_graph_emb = gnn(prompt_graph.x, prompt_graph.edge_index, prompt_graph.batch, prompt_type = 'RobustPrompt_I')           
-            # prompt_node_emb_wo_token = prompt_node_emb[self.token_num: num_nodes_prompt_graphs[0]]
-            # # 保存prompt graph上除了token的所有节点的embedding
-            # start = num_nodes_prompt_graphs[0]
-            # for lenPG in num_nodes_prompt_graphs[1:]:
-            #     prompt_node_emb_wo_token = torch.cat((prompt_node_emb_wo_token, prompt_node_emb[start + self.token_num: start + lenPG]), dim = 0)
-            #     start += lenPG 
-            
-            # loss_mse = F.mse_loss(prompt_node_emb_wo_token, pruned_node_emb)
-            # print("mse loss : {}".format(loss_mse))
-            # mse的实现方式
-            # loss_mse = (prompt_node_emb_wo_token - pruned_node_emb).pow(2).sum(1).sum()
-            # print(loss_mse / (pruned_node_emb.shape[0] * pruned_node_emb.shape[1]))
-
-
-
-
-            # 方法二，需要对prompt token进行约束，让提示图具有比较好的同质性
-            # loss_homo = F.mse_loss(prompt_node_emb[prompt_graph.edge_index[0]], prompt_node_emb[prompt_graph.edge_index[1]])
-            # print("homo loss : {}".format(loss_homo))
-
-
-
-
-            # 方法三，分布loss，distribution loss:  graph embedding distribution alignment.
-            # remaing_graph_embs = torch.tensor([]).to(device)
-            # for batch_id, remaining_batch in enumerate(remaining_loader):  
-            #     remaining_batch = remaining_batch.to(device)
-            #     remaining_prompt_graph_batch = self.add_robust_prompt(remaining_batch)
-            #     _, remaining_prompt_graph_batch_emb = gnn(remaining_prompt_graph_batch.x, remaining_prompt_graph_batch.edge_index, remaining_prompt_graph_batch.batch, prompt_type = 'RobustPrompt')
-            #     remaing_graph_embs = torch.cat((remaing_graph_embs, remaining_prompt_graph_batch_emb),dim = 0)
-            # cluster = KMeans(n_clusters=7,random_state=0).fit(remaing_graph_embs.detach().cpu())
-            # remaing_embs_dis = torch.FloatTensor(cluster.cluster_centers_).to(device)
-            # loss_cmd = cmd(remaing_embs_dis, prompt_graph_emb)
-            # print("cmd loss : {}".format(loss_cmd))
-
-            # pre = answering(prompt_graph_emb)
-            # train_loss = lossfn(pre, train_batch.y) +  loss_homo + loss_cmd
-            #######################################################################################################################
-
-
+            train_loss = lossfn(pre, train_batch.y) + self.weight_mse * loss_mse + self.weight_kl * loss_pt + self.weight_constraint * loss_constraint
             opi.zero_grad()
             train_loss.backward()
             opi.step()
             running_loss += train_loss.item()
         return running_loss / len(train_loader)
-    
-
-    def TuneKnowledgeDistillation(self, train_loader, pseudo_model, pseudo_logits_train, gnn, answering, lossfn, opi, device):
-        running_loss = 0.
-        for batch_id, train_batch in enumerate(train_loader): 
-            train_batch = train_batch.to(device)
-            prompted_graph, num_nodes_induced_graphs, num_nodes_prompt_graphs = self.forward(train_batch, pseudo_model)
-            prompt_node_emb, prompt_graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch, prompt_type = 'RobustPrompt_I')       
-
-            pre = answering(prompt_graph_emb)
-            # loss_ce = lossfn(pre, train_batch.y)
-            loss_ce = lossfn(pre, torch.argmax(pseudo_logits_train, dim=1))
-            
-            # KL散度，知识蒸馏
-            temperature = 0.9
-            alpha = 0.99
-            pseudo_logits_train = pseudo_logits_train.detach()
-            loss_kl = torch.nn.KLDivLoss()(F.log_softmax(pre / temperature, dim=1), F.softmax(pseudo_logits_train / temperature, dim=1)) 
-            loss = (1 - alpha) * loss_ce + alpha * loss_kl
-            print(loss)
-
-            opi.zero_grad()
-            loss.backward()
-            opi.step()
-            running_loss += loss.item()
-        return running_loss / len(train_loader)
-
-
-
-
-
-    def TuneWithoutAnswering(self, train_loader, gnn, answering, lossfn, opi, device):
-        total_loss = 0.0 
-        for batch in train_loader:
-            self.optimizer.zero_grad()
-            batch = batch.to(self.device)
-            emb0 = gnn(batch.x, batch.edge_index, batch.batch)
-            pg_batch = self.inner_structure_update()
-            pg_batch = pg_batch.to(self.device)
-            pg_emb = gnn(pg_batch.x, pg_batch.edge_index, pg_batch.batch)
-            # cross link between prompt and input graphs
-            dot = torch.mm(emb0, torch.transpose(pg_emb, 0, 1))
-            sim = torch.softmax(dot, dim=1)
-            loss = lossfn(sim, batch.y)
-            loss.backward()
-            self.optimizer.step()
-            total_loss += loss.item()  
-        return total_loss / len(train_loader) 

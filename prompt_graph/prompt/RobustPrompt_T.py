@@ -5,65 +5,35 @@ from torch_geometric.utils import degree
 from torch_geometric.data import Data
 import numpy as np
 
-class RobustPrompt_GPF(torch.nn.Module):
-    def __init__(self, in_channels: int):
-        super(RobustPrompt_GPF, self).__init__()
-        self.global_emb = torch.nn.Parameter(torch.Tensor(1,in_channels))
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        glorot(self.global_emb)
-
-    def add(self, x: torch.Tensor):
-        return x + self.global_emb
     
-
-class RobustPrompt_GPFplus(torch.nn.Module):
-    def __init__(self, in_channels: int, p_num: int):
-        super(RobustPrompt_GPFplus, self).__init__()
-        self.p_list = torch.nn.Parameter(torch.Tensor(p_num, in_channels))
-        self.a = torch.nn.Linear(in_channels, p_num)
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        glorot(self.p_list)
-        self.a.reset_parameters()
-
-    def add(self, x: torch.Tensor):
-        score = self.a(x)
-        # weight = torch.exp(score) / torch.sum(torch.exp(score), dim=1).view(-1, 1)
-        weight = F.softmax(score, dim=1)
-        p = weight.mm(self.p_list)
-
-        return x + p
-    
-
-
-# class RobustPrompt_T(torch.nn.Module):
-#     def __init__(self, in_channels: int):
-#         super(RobustPrompt_T, self).__init__()
-#         print('use GPF')
-#         quit()
-#         self.global_emb = torch.nn.Parameter(torch.Tensor(1,in_channels))
-#         self.reset_parameters()
-
-#     def reset_parameters(self):
-#         glorot(self.global_emb)
-
-#     def add(self, x: torch.Tensor):
-#         return x + self.global_emb
-    
-
 
 class RobustPrompt_T(torch.nn.Module):
-    def __init__(self, in_channels: int, muti_defense_pt_dict, use_attention, num_heads, cosine_constraint):
+    def __init__(self, in_channels: int, muti_defense_pt_dict, use_attention, num_heads, cosine_constraint, pt_threshold, temperature, weight_mse, weight_kl, weight_constraint):
         super(RobustPrompt_T, self).__init__()
 
         self.in_channels           = in_channels
         self.pt_dict  = muti_defense_pt_dict
         self.pt_keys  = self.pt_dict.keys()
+
         self.use_attention     = use_attention
-        self.cosine_constraint = cosine_constraint
+        self.cosine_constraint = cosine_constraint   # 是否用cosine计算prompt间距离
+        self.pt_threshold      = pt_threshold        # 添加final prompt后的修剪超参数
+
+        # Tune过程中的不同loss权重和temperature
+        self.temperature       = temperature
+        self.weight_mse        = weight_mse
+        self.weight_kl         = weight_kl
+        self.weight_constraint = weight_constraint
+
+        print('use RobustPrompt Tranductive')
+        print('defense pt dict : ', self.pt_dict)
+        print('use_attention : ',self.use_attention)
+        print('cosine_constraint : ',self.cosine_constraint)
+        print('pt_threshold : ',self.pt_threshold)
+        print('temperature : ',self.temperature)
+        print('weight_mse',self.weight_mse)
+        print('weight_kl : ',self.weight_kl)
+        print('weight_constraint : ',self.weight_constraint)
 
 
         if 'sim_pt' in self.pt_keys:
@@ -188,7 +158,7 @@ class RobustPrompt_T(torch.nn.Module):
                     random_indices  = torch.randint(0, node_use_no_pt.size(0), (num_samples,))
                     node_use_other_pt  = node_use_no_pt[random_indices]
             else:
-                node_use_other_pt = torch.tensor([]).to(device)
+                node_use_other_pt = torch.tensor([], dtype=node_use_no_pt.dtype).to(device)
 
              # 将prompt放到当前图中没有用到任何defense pt的节点上
             g_mutiftpt_record[node_use_other_pt, pt_range_dict['other_pt'][0] : pt_range_dict['other_pt'][1]] = self.prompt_other_pt
@@ -218,13 +188,11 @@ class RobustPrompt_T(torch.nn.Module):
             key_padding_mask =  torch.zeros((g.num_nodes, len(self.pt_keys)), dtype=torch.bool).to(device)
             # 利用attention得到prompt之间的关系
             g_mutiftpt_output, g_mutiftpt_attn_weights =  self.attention_layer(g_mutiftpt_record, g_mutiftpt_record, g_mutiftpt_record, key_padding_mask = key_padding_mask)
-
             print(g_mutiftpt_output)
             # 对每个节点attention后所有的prompt求avg得到每个节点的最终混合prompt
             # g_mutiftpt_final_output = torch.mean(g_mutiftpt_output, dim=1) # 求平均，不好，因为有一些padding的embedding
             g_mutiftpt_final_output = g_mutiftpt_output[:,0,:] # BERT的方法，利用添加的readout_token的embedding
  
-       
             # # ************************************ 过滤器 ************************************ #
             # # 这里对没有加任何pt的节点进行过滤，要不然每个节点都会加readout_token的embedding
             # node_num_pt = key_padding_mask.sum(-1)
@@ -264,7 +232,7 @@ class RobustPrompt_T(torch.nn.Module):
 
 
 
-    def Tune(self, graph, tag, gnn, answering, lossfn, opi, device):
+    def Tune(self, graph, gnn, answering, lossfn, opi, device):
 
         # *****************************************  Prompt Pruned PART  ***************************************** #
         # ######################################################################################
@@ -297,7 +265,7 @@ class RobustPrompt_T(torch.nn.Module):
         edge_index = g_mutiftpt.edge_index
         cosine_sim = F.cosine_similarity(g_mutiftpt.x[edge_index[0]], g_mutiftpt.x[edge_index[1]])
         # Define threshold t
-        threshold = 0.5
+        threshold = self.pt_threshold
         # Identify edges to keep
         keep_edges = cosine_sim >= threshold
         # Filter edge_index to only keep edges above the threshold
@@ -319,10 +287,6 @@ class RobustPrompt_T(torch.nn.Module):
 
 
         # *********************************************  loss PART  ********************************************* #
-        temperature = 0.6
-        alpha = 0.1
-        beta  = 0.1
-        gamma = 0.1
         ######################################################################################
         # loss_mse 提示整体以同质性假设为导向
         loss_mse = F.mse_loss(node_emb[g_mutiftpt.edge_index[0]], node_emb[g_mutiftpt.edge_index[1]])
@@ -344,7 +308,7 @@ class RobustPrompt_T(torch.nn.Module):
                 continue
             global_pt_mean    = torch.mean(node_emb[node_use_each_pt_whole_graph[pt]], dim = 0)    # [ 1, hid_dim ] 一个batch只有一个 全局的
             global_no_pt_mean = torch.mean(node_emb[node_use_no_pt], dim = 0)                      # [ 1, hid_dim ] 一个batch只有一个 全局的
-            loss_pt_kl = torch.nn.KLDivLoss()(F.log_softmax(global_pt_mean / temperature), F.softmax(global_no_pt_mean / temperature)) 
+            loss_pt_kl = torch.nn.KLDivLoss()(F.log_softmax(global_pt_mean / self.temperature), F.softmax(global_no_pt_mean / self.temperature)) 
             loss_pt += loss_pt_kl
         # print("loss_pt : ", loss_pt)
         ######################################################################################
@@ -369,8 +333,7 @@ class RobustPrompt_T(torch.nn.Module):
 
 
 
-
-        loss = lossfn(out[graph.train_mask], graph.y[graph.train_mask]) + alpha * loss_mse + beta * loss_pt + gamma * loss_constraint
+        loss = lossfn(out[graph.train_mask], graph.y[graph.train_mask]) + self.weight_mse * loss_mse + self.weight_kl * loss_pt + self.weight_constraint * loss_constraint
         opi.zero_grad()
         loss.backward()  
         opi.step()

@@ -1,5 +1,5 @@
 
-CUDA_VISIBLE_DEVICES=0
+CUDA_VISIBLE_DEVICES=1
 python MyTask.py \
 --pre_train_model_path './pre_trained_model/Cora.GraphCL.GCN.256hidden_dim.pth' \
 --task NodeTask \
@@ -7,7 +7,7 @@ python MyTask.py \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
 --prompt_type 'RobustPrompt-I' \
---shot_num 5 \
+--shot_num 10 \
 --run_split 1 \
 --hid_dim 256 \
 --num_layer 2 \

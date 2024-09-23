@@ -1,6 +1,6 @@
 import torch
 from prompt_graph.model import GAT, GCN, GCov, GIN, GraphSAGE, GraphTransformer
-from prompt_graph.prompt import RobustPrompt_GPF, RobustPrompt_GPFplus, RobustPrompt_T, RobustPrompt_I, RobustPrompt_I_Feat, HeavyPrompt, GPPTPrompt,Gprompt, GPF, GPF_plus
+from prompt_graph.prompt import RobustPrompt_GPF, RobustPrompt_GPFplus, RobustPrompt_T, RobustPrompt_I, HeavyPrompt, GPPTPrompt,Gprompt, GPF, GPF_plus
 from torch import nn, optim
 from prompt_graph.data import load4graph
 from prompt_graph.prompt import featureprompt, downprompt
@@ -139,19 +139,38 @@ class BaseTask:
             #     print(name)
             # quit()
 
-        elif self.prompt_type == 'RobustPrompt-I':
-            # {'sim_pt': 0.4, 'degree_pt': 2, 'other_pt' : 'all'}
-            self.prompt = RobustPrompt_I_Feat(self.input_dim,  muti_defense_pt_dict={'sim_pt': 0.2, 'degree_pt': 3},  use_attention=False,  num_heads=1, kl_global=False, cosine_constraint=True).to(self.device)
-            # self.prompt = RobustPrompt_I(token_dim=self.input_dim, per_graph_token_num=10, num_prompt_graph= self.output_dim, cross_prune=0.1, inner_prune=0.3).to(self.device)  
-        elif self.prompt_type == 'RobustPrompt-T':
-            # self.prompt = RobustPrompt_T(self.input_dim).to(self.device)    
-            self.prompt = RobustPrompt_T(self.input_dim,  muti_defense_pt_dict={'sim_pt': 0.2},  use_attention=False,  num_heads=1, cosine_constraint=False).to(self.device)
+        elif self.prompt_type == 'RobustPrompt-I': 
+             # {'sim_pt': 0.4, 'degree_pt': 2, 'other_pt' : 'all'}
+            self.prompt = RobustPrompt_I(self.input_dim,  
+                                              muti_defense_pt_dict={'sim_pt': 0.2},  
+                                              use_attention=False,  
+                                              num_heads=1, 
+                                              kl_global=True, 
+                                              cosine_constraint=True, 
+                                              pt_threshold=0.05, 
+                                              temperature=1.0,
+                                              weight_mse=0.2, 
+                                              weight_kl=0.8, 
+                                              weight_constraint=0.8).to(self.device)
+        elif self.prompt_type == 'RobustPrompt-T':  
+            self.prompt = RobustPrompt_T(self.input_dim,  
+                                         muti_defense_pt_dict={'sim_pt': 0.2,'degree_pt':3},  
+                                         use_attention=False,  
+                                         num_heads=1, 
+                                         cosine_constraint=False,
+                                         pt_threshold=0.2, 
+                                         temperature=1.0,
+                                         weight_mse=0.2, 
+                                         weight_kl=0.2, 
+                                         weight_constraint=0.8).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPF':
             self.prompt = RobustPrompt_GPF(self.input_dim).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPFplus':
-            self.prompt = RobustPrompt_GPFplus(self.input_dim, 40).to(self.device)
+            self.prompt = RobustPrompt_GPFplus(self.input_dim, 20).to(self.device)
         else:
             raise KeyError(" We don't support this kind of prompt.")
+
+
 
 
     def initialize_gnn(self):
