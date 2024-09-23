@@ -36,17 +36,12 @@ def RobustPromptTranductiveEva(data, mask, gnn, prompt, answering, num_class, de
     # out = gnn(g_mutiftpt.x, g_mutiftpt.edge_index)
     # ######################################################################################
 
-
-
-
     ######################################################################################
     # 前后都不处理，直接加提示
     g_mutiftpt, _ = prompt.add_muti_pt(data, device)
     out = gnn(g_mutiftpt.x, g_mutiftpt.edge_index)
     ######################################################################################
     
-
-
     # ######################################################################################
     # # 放在后面： 对图的特征进行多提示添加后根据添加prompt的特征修剪图
     # g_mutiftpt, _ = prompt.add_muti_pt(data, device)

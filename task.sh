@@ -6,8 +6,8 @@ python MyTask.py \
 --dataset_name 'Cora' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
---prompt_type 'RobustPrompt-T' \
---shot_num 10 \
+--prompt_type 'RobustPrompt-I' \
+--shot_num 5 \
 --run_split 1 \
 --hid_dim 256 \
 --num_layer 2 \

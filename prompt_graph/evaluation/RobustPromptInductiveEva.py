@@ -21,34 +21,57 @@ def RobustPromptInductiveEva(loader, tag, prompt, gnn, answering, num_class, dev
         for batch_id, batch in enumerate(loader): 
             batch = batch.to(device) 
  
-            # idea 1
-            # prompted_graph, num_nodes_induced_graphs, num_nodes_prompt_graphs = prompt(batch, pseudo_model)
-            # idea 2
-            # prompted_graph = prompt.add_robust_prompt(batch)
-            # idear 3
+
+            # ######################################################################################
+            # # 放在前面: 先修剪图再对特征进行多提示添加
+            # pruned_batch_before_pt_list = []
+            # for g in Batch.to_data_list(batch):
+            #     # Prune edge index
+            #     edge_index = g.edge_index
+            #     cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
+            #     # Define threshold t
+            #     threshold = 0.2
+            #     # Identify edges to keep
+            #     keep_edges = cosine_sim >= threshold
+            #     # Filter edge_index to only keep edges above the threshold
+            #     pruned_edge_index   = edge_index[:, keep_edges]
+            #     pruned_g_before_pt  = Data(x=g_pt.x, edge_index=pruned_edge_index, y=g_pt.y)
+            #     pruned_batch_before_pt_list.append(pruned_g_before_pt)
+            # pruned_batch_before_pt = Batch.from_data_list(pruned_batch_before_pt_list)
+            # prompted_graph, _      = prompt(pruned_batch_before_pt, tag, device)
+            # node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt_I')
+            # ######################################################################################
+
+
+            ######################################################################################
+            # 前后都不处理，直接加提示
             prompted_graph, _ = prompt(batch, tag, device)
-            # raw
-            # prompted_graph = batch
-
-            ################
-            pruned_prompt_batch_list = []
-            for g_pt in Batch.to_data_list(prompted_graph):
-                # Prune edge index
-                edge_index = g_pt.edge_index
-                cosine_sim = F.cosine_similarity(g_pt.x[edge_index[0]], g_pt.x[edge_index[1]])
-                # Define threshold t
-                threshold = 0.2
-                # Identify edges to keep
-                keep_edges = cosine_sim >= threshold
-                # Filter edge_index to only keep edges above the threshold
-                pruned_edge_index = edge_index[:, keep_edges]
-                pruned_prompt_g  = Data(x=g_pt.x, edge_index=pruned_edge_index, y=g_pt.y)
-                pruned_prompt_batch_list.append(pruned_prompt_g)
-            pruned_prompt_graph = Batch.from_data_list(pruned_prompt_batch_list)
-            ################
+            node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt_I')
+            ######################################################################################
 
 
-            node_emb, graph_emb = gnn(pruned_prompt_graph.x, pruned_prompt_graph.edge_index, pruned_prompt_graph.batch,  prompt_type = 'RobustPrompt_I')
+            # ######################################################################################
+            # # 放在后面： 对图的特征进行多提示添加后根据添加prompt的特征修剪图
+            # prompted_graph, _ = prompt(batch, tag, device)
+            # pruned_batch_after_pt_list = []
+            # for g_pt in Batch.to_data_list(prompted_graph):
+            #     # Prune edge index
+            #     edge_index = g_pt.edge_index
+            #     cosine_sim = F.cosine_similarity(g_pt.x[edge_index[0]], g_pt.x[edge_index[1]])
+            #     # Define threshold t
+            #     threshold = 0.2
+            #     # Identify edges to keep
+            #     keep_edges = cosine_sim >= threshold
+            #     # Filter edge_index to only keep edges above the threshold
+            #     pruned_edge_index = edge_index[:, keep_edges]
+            #     pruned_g_after_pt  = Data(x=g_pt.x, edge_index=pruned_edge_index, y=g_pt.y)
+            #     pruned_batch_after_pt_list.append(pruned_g_after_pt)
+            # pruned_batch_after_pt = Batch.from_data_list(pruned_batch_after_pt_list)
+            # node_emb, graph_emb = gnn(pruned_batch_after_pt.x, pruned_batch_after_pt.edge_index, pruned_batch_after_pt.batch,  prompt_type = 'RobustPrompt_I')
+            # ######################################################################################
+
+
+
             pre = answering(graph_emb)
             pred = pre.argmax(dim=1)  
             acc = accuracy(pred, batch.y)

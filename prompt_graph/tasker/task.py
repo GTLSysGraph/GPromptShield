@@ -145,8 +145,7 @@ class BaseTask:
             # self.prompt = RobustPrompt_I(token_dim=self.input_dim, per_graph_token_num=10, num_prompt_graph= self.output_dim, cross_prune=0.1, inner_prune=0.3).to(self.device)  
         elif self.prompt_type == 'RobustPrompt-T':
             # self.prompt = RobustPrompt_T(self.input_dim).to(self.device)    
-            self.prompt = RobustPrompt_T(self.input_dim,  muti_defense_pt_dict={'sim_pt': 0.4, 'degree_pt': 3, 'other_pt' : 'random-0.1'},  use_attention=True,  num_heads=1, cosine_constraint=False).to(self.device)
-
+            self.prompt = RobustPrompt_T(self.input_dim,  muti_defense_pt_dict={'sim_pt': 0.2},  use_attention=False,  num_heads=1, cosine_constraint=False).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPF':
             self.prompt = RobustPrompt_GPF(self.input_dim).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPFplus':

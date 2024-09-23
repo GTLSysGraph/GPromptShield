@@ -214,8 +214,64 @@ class RobustPrompt_I_Feat(torch.nn.Module):
             ######################################################################################
             
 
+
+
+
+
+            # *****************************************  Prompt Pruned PART  ***************************************** #
+
+            # # ######################################################################################
+            # # 放在前面: 先修剪图再对特征进行多提示添加
+            # # Prune edge index
+            # edge_index = g.edge_index
+            # cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
+            # # Define threshold t
+            # threshold = 0.05
+            # # Identify edges to keep
+            # keep_edges = cosine_sim >= threshold
+            # # Filter edge_index to only keep edges above the threshold
+            # pruned_edge_index    = edge_index[:, keep_edges]
+            # pruned_g_before_pt   = Data(x=g.x, edge_index=pruned_edge_index, y=g.y)
+            # pruned_g_before_pt.x = self.add_pt(pruned_g_before_pt.x, g_mutiftpt_final_output)
+            # graph_mutiftpt.append(pruned_g_before_pt)
+            # # #####################################################################################
+
+
+            # ######################################################################################
+            # # 前后都不处理，直接加提示
             g.x = self.add_pt(g.x, g_mutiftpt_final_output)
             graph_mutiftpt.append(g)
+            # ######################################################################################
+
+
+            # ######################################################################################
+            # # 放在后面： 对图的特征进行多提示添加后根据添加prompt的特征修剪图
+            # g.x = self.add_pt(g.x, g_mutiftpt_final_output)
+            # # Prune edge index
+            # edge_index = g.edge_index
+            # cosine_sim = F.cosine_similarity(g.x[edge_index[0]], g.x[edge_index[1]])
+            # # Define threshold t
+            # threshold = 0.5
+            # # Identify edges to keep
+            # keep_edges = cosine_sim >= threshold
+            # # Filter edge_index to only keep edges above the threshold
+            # pruned_edge_index = edge_index[:, keep_edges]
+            # pruned_g_after_pt= Data(x=g.x, edge_index=pruned_edge_index, y=g.y)
+            # graph_mutiftpt.append(pruned_g_after_pt)
+            # ######################################################################################
+            # *****************************************  loss PART  ***************************************** #
+
+
+
+
+
+
+
+
+
+            
+
+
 
             # 当前图处理结束，保存当前图的start_index, 并且更新whole_batch中下一个图的start_index
             node_use_each_pt_whole_batch['g_start_index'].append(whole_batch_start_index)
@@ -245,12 +301,12 @@ class RobustPrompt_I_Feat(torch.nn.Module):
             node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt-I')
             pre = answering(graph_emb)
 
+
+            # *********************************************  loss PART  ********************************************* #
             ######################################################################################
             # loss_mse 提示整体以同质性假设为导向
             loss_mse = F.mse_loss(node_emb[prompted_graph.edge_index[0]], node_emb[prompted_graph.edge_index[1]])
             # print("loss_mse : ", loss_mse)
-            ######################################################################################
-
             ######################################################################################
             # loss_pt 针对每一个prompt让筛选节点的平均embedding和未筛选节点的平均embedding相似
             loss_pt = 0.
@@ -300,11 +356,6 @@ class RobustPrompt_I_Feat(torch.nn.Module):
                     loss_pt += loss_pt_kl
             # print("loss_pt : ", loss_pt)
             ######################################################################################
-            
-
-
-
-            ######################################################################################
             # loss_constraint 针对不同的pt进行约束      提供两种方法 norm计算矩阵的二范数，矩阵中所有元素平方求和后开根号
             muti_prompt, overlap_matrix = self.get_muti_prompt(node_use_each_pt_whole_batch, device)
             # 这是一个用'sim_pt': 0.6, 'degree_pt': 3, 'other_pt' : 'all'利用cosine_constraint得到的overlap_matrix
@@ -326,6 +377,9 @@ class RobustPrompt_I_Feat(torch.nn.Module):
                 loss_constraint = 0.
             # print("loss_constraint : ", loss_constraint)
             ######################################################################################
+            # *********************************************  loss PART  ********************************************* #
+
+
 
 
             train_loss = lossfn(pre, train_batch.y) + alpha * loss_mse + beta * loss_pt + gamma * loss_constraint
