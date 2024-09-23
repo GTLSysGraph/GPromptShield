@@ -221,9 +221,20 @@ class RobustPrompt_I(torch.nn.Module):
                 key_padding_mask = torch.all(g_mutiftpt_record == padding, dim=-1, keepdim=True).squeeze(-1)
                 # 利用attention得到prompt之间的关系
                 g_mutiftpt_output, g_mutiftpt_attn_weights =  self.attention_layer(g_mutiftpt_record, g_mutiftpt_record, g_mutiftpt_record, key_padding_mask = key_padding_mask)
+                g_mutiftpt_output = torch.nn.functional.normalize(g_mutiftpt_record, p=1, dim=2) # 为了数据的稳定！非常关键！要不都是nan
                 # 对每个节点attention后所有的prompt求avg得到每个节点的最终混合prompt
                 # g_mutiftpt_final_output = torch.mean(g_mutiftpt_output, dim=1) # 求平均，不好，因为有一些padding的embedding
                 g_mutiftpt_final_output = g_mutiftpt_output[:,0,:] # BERT的方法，利用添加的readout_token的embedding
+
+                # ************************************ 过滤器 ************************************ #
+                # 这里对没有加任何pt的节点进行过滤，要不然每个节点都会加readout_token的embedding
+                node_num_pt = key_padding_mask.sum(-1)
+                # num_nodes_pt == len(self.pt_keys)即所有的pt全是padding，全为True，只有readout_token是False
+                node_use_no_pt_indices = torch.nonzero(node_num_pt == len(self.pt_keys)).squeeze(-1)
+                # 把所有只有readout_token的都变成0,过滤一下，这些节点不加任何提示
+                g_mutiftpt_final_output[node_use_no_pt_indices] = padding
+                # g_mutiftpt_final_output = padding
+                # ************************************ 过滤器 ************************************ #
             else:    
                 # 用求平均 如果只用'other_pt'就完全复刻GPF
                 padding = torch.zeros(self.in_channels).to(device)
