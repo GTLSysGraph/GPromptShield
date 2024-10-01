@@ -20,7 +20,7 @@ class GraphCL(PreTrain):
                                                    torch.nn.ReLU(inplace=True),
                                                    torch.nn.Linear(self.hid_dim, self.hid_dim)).to(self.device)
     def load_graph_data(self):
-        if self.dataset_name in ['PubMed', 'Citeseer', 'Cora','Cora_ml','Computers', 'Photo', 'Reddit', 'WikiCS', 'Flickr']:
+        if self.dataset_name in ['PubMed', 'Citeseer', 'Cora', 'Cora_ml','Computers', 'Photo', 'Reddit', 'WikiCS', 'Flickr']:
             self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 20)
             # self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, num_parts=200, split_method='Cluster')
         else:
@@ -127,5 +127,5 @@ class GraphCL(PreTrain):
             print(cnt_wait)
 
         torch.save(self.gnn.state_dict(),
-                           "./pre_trained_model/{}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))
+                           "./pre_trained_model_adaptive/{}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))
         print("+++model saved ! {}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))

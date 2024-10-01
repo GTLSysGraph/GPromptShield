@@ -161,15 +161,15 @@ class BaseTask:
                                               weight_constraint=0.).to(self.device)
         elif self.prompt_type == 'RobustPrompt-T':  
             self.prompt = RobustPrompt_T(self.input_dim,  
-                                         muti_defense_pt_dict={'sim_pt': 0.2, 'degree_pt': 3},  
-                                         use_attention=True,  
-                                         num_heads=1, 
-                                         cosine_constraint=False,
-                                         pt_threshold=0.4, 
-                                         temperature=1.0,
-                                         weight_mse=0.1, 
-                                         weight_kl=0.2, 
-                                         weight_constraint=0.8).to(self.device)
+                                            muti_defense_pt_dict={ 'sim_pt': 0.2, 'degree_pt': 2},  
+                                            use_attention=False,  
+                                            num_heads=1, 
+                                            cosine_constraint=False,
+                                            pt_threshold=0.4, 
+                                            temperature=1.0,
+                                            weight_mse=0.2, 
+                                            weight_kl=0.8, 
+                                            weight_constraint=0.2).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPF':
             self.prompt = RobustPrompt_GPF(self.input_dim).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPFplus':

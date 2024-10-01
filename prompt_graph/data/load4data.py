@@ -744,26 +744,27 @@ def load4node_demo2(dataname):
         # dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures()) 
         ##################################################################################################
 
-        ##################################################################################################
+        # #################################################################################################
         # # use the largest connected component
         # print('Now use LLC datasets for pretrain !')
         # path    = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
         # dataset = get_dataset(path, 'Attack-' + dataname, 'Meta_Self', 0.0) # 0.0的扰动率即代表最大联通分量 
         # # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
-        ##################################################################################################
+        # #################################################################################################
 
+        #################################################################################################
         # use adaptive clean
         print('Now use adaptive clean for pretrain !')
         path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_unit_test_data')
         adaptive_dict = EasyDict()
         adaptive_dict['PARAM'] = {
                     "scenario": 'poisoning', 
-                    "split":    0, 
+                    "split":     0, 
                     "adaptive_attack_model": 'gnn_guard', 
                     "ptb_rate":  0.
             }
         dataset    = get_dataset(path, 'Unit-' + dataname, adaptive_dict= adaptive_dict['PARAM'])
-
+        #################################################################################################
 
 
 

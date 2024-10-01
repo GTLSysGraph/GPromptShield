@@ -1,14 +1,14 @@
 #################################################################################
 # 'MultiGprompt' 'GPF'  'GPF-plus' 'RobustPrompt-GPF', 'RobustPrompt-GPFplus', 'RobustPrompt-T', 'GPF-Tranductive', 'GPF-plus-Tranductive'  'All-in-one' 'GPPT' 'Gprompt'
-dataset_names=('Citeseer')
-prompt_names=('GPPT' )
-pretrin_name='GraphMAE'
-pre_train_model_path='./pre_trained_model/Citeseer.GraphMAE.GCN.256hidden_dim.pth'
-epoch=20
-hid_dim=256
+dataset_names=('Cora_ml')
+prompt_names=('RobustPrompt-T')
+pretrain_name='GraphMAE'
+pre_train_model_path='./pre_trained_model/Cora_ml.GraphMAE.GCN.64hidden_dim.pth'
+epoch=100
+hid_dim=64
 shot_nums=(5 10)
 run_splits=(1)
-seed=1
+seed=123
 #################################################################################
 
 atk_methods=('Meta_Self' 'heuristic' 'DICE' 'random')
@@ -16,13 +16,13 @@ mtk_ptbs=(0.0 0.25)
 atk_ptbs=(0.5)
 
 
-# mtk_ptbs=(0.0 0.05 0.1 0.15 0.2 0.25) /$pretrin_name
+# mtk_ptbs=(0.0 0.05 0.1 0.15 0.2 0.25)                   /$pretrain_name   $pretrain_name/
 # atk_ptbs=(0.0 0.1 0.2 0.3 0.4 0.5)
 # atk_methods=('Meta_Self' 'heuristic' 'DICE' 'random')
 
 
 process_num=0
-max_process_num=3
+max_process_num=6
 
 
 for dataset_name in "${dataset_names[@]}"; do
@@ -35,12 +35,12 @@ for dataset_name in "${dataset_names[@]}"; do
                         for atk_ptb in "${mtk_ptbs[@]}"; do
                             echo "运行顺序: $dataset_name $prompt_name $shot_num $run_split $atk_method $atk_ptb"
                     
-                            dir="./logs/${prompt_name}/$pretrin_name"
+                            dir="./logs/${prompt_name}/$pretrain_name"
                             if [ ! -d "$dir" ];then
-                            mkdir $dir
-                            echo "创建文件夹成功"
+                                mkdir -p $dir
+                                echo "创建文件夹成功"
                             else
-                            echo "文件夹已经存在"
+                                echo "文件夹已经存在"
                             fi
 
 
@@ -60,7 +60,7 @@ for dataset_name in "${dataset_names[@]}"; do
                             --seed $seed \
                             --attack_downstream \
                             --attack_method "${atk_method}-${atk_ptb}" \
-                            > "./logs/${prompt_name}/$pretrin_name/${dataset_name}_shot_${shot_num}_split_${run_split}_${atk_method}_${atk_ptb}" &
+                            > "./logs/${prompt_name}/$pretrain_name/${dataset_name}_shot_${shot_num}_split_${run_split}_${atk_method}_${atk_ptb}" &
 
                             process_num=`expr $process_num + 1`
                             process_num=`expr $process_num % $max_process_num`
@@ -73,12 +73,12 @@ for dataset_name in "${dataset_names[@]}"; do
                         for atk_ptb in "${atk_ptbs[@]}"; do
                             echo "运行顺序: $dataset_name $prompt_name $shot_num $run_split $atk_method $atk_ptb"
                     
-                            dir="./logs/${prompt_name}/$pretrin_name"
+                            dir="./logs/${prompt_name}/$pretrain_name"
                             if [ ! -d "$dir" ];then
-                            mkdir $dir
-                            echo "创建文件夹成功"
+                                mkdir -p $dir
+                                echo "创建文件夹成功"
                             else
-                            echo "文件夹已经存在"
+                                echo "文件夹已经存在"
                             fi
 
 
@@ -98,7 +98,7 @@ for dataset_name in "${dataset_names[@]}"; do
                             --seed $seed \
                             --attack_downstream \
                             --attack_method "${atk_method}-${atk_ptb}" \
-                            > "./logs/${prompt_name}/$pretrin_name/${dataset_name}_shot_${shot_num}_split_${run_split}_${atk_method}_${atk_ptb}" &
+                            > "./logs/${prompt_name}/$pretrain_name/${dataset_name}_shot_${shot_num}_split_${run_split}_${atk_method}_${atk_ptb}" &
 
                             process_num=`expr $process_num + 1`
                             process_num=`expr $process_num % $max_process_num`

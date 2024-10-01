@@ -1,11 +1,11 @@
 #################################################################################
 # 'MultiGprompt' 'All-in-one' 'GPF'  'GPF-plus' 'RobustPrompt-GPF', 'RobustPrompt-GPFplus', 'RobustPrompt-T', 'GPF-Tranductive', 'GPF-plus-Tranductive'  'GPPT' 'Gprompt'
 dataset_names=('Cora_ml')
-prompt_names=('Gprompt')
-# pretrin_name='GraphMAE'
-pre_train_model_path='./pre_trained_model_adaptive/Cora_ml.Edgepred_Gprompt.GCN.64hidden_dim.pth'
+prompt_names=('RobustPrompt-T')
+pretrain_name='GraphMAE'
+pre_train_model_path='./pre_trained_model_adaptive/Cora_ml.GraphMAE.GCN.256hidden_dim.pth'
 epoch=100
-hid_dim=64
+hid_dim=256
 shot_nums=(5 10)
 run_splits=(1)
 seed=1
@@ -25,7 +25,7 @@ atk_ptbs=(0.1499 0.1274 0.1499 0.1487)
 # /$pretrin_name
 
 process_num=0
-max_process_num=2
+max_process_num=4
 
 length=${#atk_methods[@]}
 
@@ -38,7 +38,7 @@ for dataset_name in "${dataset_names[@]}"; do
                     atk_ptb=${atk_ptbs[i]}
                     echo "运行顺序: $dataset_name $prompt_name $shot_num $run_split $method $atk_ptb"
             
-                    dir="./logs_adaptive/${prompt_name}"
+                    dir="./logs_adaptive/${prompt_name}/$pretrain_name"
                     if [ ! -d "$dir" ];then
                         mkdir -p $dir
                         echo "创建文件夹成功"
@@ -67,7 +67,7 @@ for dataset_name in "${dataset_names[@]}"; do
                     --adaptive_split 0 \
                     --adaptive_attack_model $method \
                     --adaptive_ptb_rate $atk_ptb \
-                    > "./logs_adaptive/${prompt_name}/${dataset_name}_shot_${shot_num}_split_${run_split}_${method}_${atk_ptb}" &
+                    > "./logs_adaptive/${prompt_name}/$pretrain_name/${dataset_name}_shot_${shot_num}_split_${run_split}_${method}_${atk_ptb}" &
 
                     process_num=`expr $process_num + 1`
                     process_num=`expr $process_num % $max_process_num`
