@@ -1,5 +1,5 @@
 data*
-/pre_trained_model
+/pre_trained_model*
 __pycache__
 test*
-logs
+logs*

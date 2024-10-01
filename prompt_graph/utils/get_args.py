@@ -36,7 +36,6 @@ def get_args():
     parser.add_argument('--seed', nargs='+', type=int, help = "Seed for splitting dataset.")
     parser.add_argument('--run_split', nargs='+', type=int, help= "run split num")
     # parser.add_argument('--run_split', type=int, help= "run split num")
-
     parser.add_argument('--runseed', type=int, default=0, help = "Seed for running experiments.")
     parser.add_argument('--num_workers', type=int, default = 0, help='Number of workers for dataset loading')
     parser.add_argument('--num_layers', type=int, default = 1, help='A range of [1,2,3]-layer MLPs with equal width')
@@ -48,6 +47,15 @@ def get_args():
     parser.add_argument('--specified',         action='store_true',      default=False, help='Attack specified split, Used for some distribution-based attacks')
     # ArgumentParser在传布尔类型变量时，传入参数按字符串处理，所以无论传入什么值，参数值都为True。
     parser.add_argument('--attack_method',     type=  str,               default=  'None') # ['DICE-0.1','Meta_Self-0.05' ,...] 攻击方式-扰动率
+    # 如果用自适应攻击，就使用下面的参数
+    parser.add_argument('--adaptive',                       action='store_true',      default= False, help='Unit Test')
+    parser.add_argument('--adaptive_scenario',              type=str,                 default= 'None') # 'poisoning'
+    parser.add_argument('--adaptive_split',                 type=int,                 default= 0)
+    parser.add_argument('--adaptive_attack_model',          type=str,                 default= 'None') 
+    parser.add_argument('--adaptive_ptb_rate',              type=float,               default=0.)
+
+
+
 
     args = parser.parse_args()
     return args

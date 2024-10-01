@@ -45,7 +45,7 @@ class GPPTPrompt(torch.nn.Module):
         # 对于图中的每一个节点，将其特征（'h'）发送给所有邻居节点，然后每个节点会计算所有收到的邻居特征的平均值，并将这个平均值存储为自己的新特征在'neighbor'下
 
         conv = SimpleMeanConv()
-        # 使用这个层进行前向传播，得到聚合后的节点特征
+        # # 使用这个层进行前向传播，得到聚合后的节点特征
         h = conv(h, edge_index)
 
         # GPPT源码是把向量拼接在一起
@@ -110,3 +110,57 @@ class GPPTPrompt(torch.nn.Module):
             out[index==i]=self.TaskToken[i](h[index==i]) # 任务token
         return out
     
+def kmeans(X, num_clusters, distance='euclidean', device='cuda', max_iter=100, tol=1e-4):
+    """
+    Perform KMeans clustering on the input data X.
+
+    Parameters:
+    X : torch.Tensor
+        Input data, shape [n_samples, n_features]
+    num_clusters : int
+        Number of clusters
+    distance : str
+        Distance metric ('euclidean' is currently supported)
+    device : str
+        Device to use ('cuda' or 'cpu')
+    max_iter : int
+        Maximum number of iterations
+    tol : float
+        Tolerance for convergence
+
+    Returns:
+    cluster_ids_x : torch.Tensor
+        Cluster assignment for each sample
+    cluster_centers : torch.Tensor
+        Cluster centers
+    """
+
+    if distance != 'euclidean':
+        raise NotImplementedError("Currently only 'euclidean' distance is supported.")
+
+    X = X.to(device)
+    n_samples, n_features = X.shape
+
+    # Randomly initialize cluster centers
+    random_indices = torch.randperm(n_samples)[:num_clusters]
+    cluster_centers = X[random_indices]
+
+    for i in range(max_iter):
+        # Compute distances and assign clusters
+        distances = torch.cdist(X, cluster_centers)
+        cluster_ids_x = torch.argmin(distances, dim=1)
+
+        # Compute new cluster centers
+        new_cluster_centers = torch.zeros_like(cluster_centers)
+        for k in range(num_clusters):
+            cluster_k = X[cluster_ids_x == k]
+            if len(cluster_k) > 0:
+                new_cluster_centers[k] = cluster_k.mean(dim=0)
+
+        # Check for convergence
+        if torch.norm(new_cluster_centers - cluster_centers) < tol:
+            break
+
+        cluster_centers = new_cluster_centers
+
+    return cluster_ids_x, cluster_centers

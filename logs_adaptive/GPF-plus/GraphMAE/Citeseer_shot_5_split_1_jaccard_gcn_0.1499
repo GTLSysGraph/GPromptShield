@@ -1,0 +1,158 @@
+load LLC or attacked shot data with default split
+{'scenario': 'poisoning', 'split': 0, 'adaptive_attack_model': 'jaccard_gcn', 'ptb_rate': 0.1499}
+======================
+Number of graphs: 1
+Number of features: 3703
+Number of classes: 6
+
+Data(x=[2110, 3703], edge_index=[2, 10546], y=[2110], train_mask=[2110], val_mask=[2110], test_mask=[2110])
+===========================================================================================================
+Number of nodes: 2110
+Number of edges: 10546
+Average node degree: 5.00
+Has isolated nodes: False
+Has self-loops: True
+Is undirected: True
+None
+tensor([ 603,  822, 1332, 1531, 1997,  126,  193, 1407,  564,  820,  282,  670,
+         121,  830, 1958,  623, 1625, 2050, 1835, 1938,  660, 1056, 1879,  337,
+        1230, 1523, 1441,  191, 1443, 1183])
+tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4,
+        4, 5, 5, 5, 5, 5])
+len train nodes: 30
+len val   nodes: 208
+len test  nodes: 1872
+Successfully loaded pre-trained weights!
+prepare induce graph data is finished!
+run GPF-plus
+Epoch 001 |  Time(s) 0.8951 | GPF-plus Loss 1.8045  
+Epoch 002 |  Time(s) 0.0829 | GPF-plus Loss 1.7803  
+Epoch 003 |  Time(s) 0.0753 | GPF-plus Loss 1.7614  
+Epoch 004 |  Time(s) 0.0750 | GPF-plus Loss 1.7385  
+Epoch 005 |  Time(s) 0.0749 | GPF-plus Loss 1.7131  
+Epoch 006 |  Time(s) 0.0888 | GPF-plus Loss 1.6809  
+Epoch 007 |  Time(s) 0.0826 | GPF-plus Loss 1.6431  
+Epoch 008 |  Time(s) 0.0976 | GPF-plus Loss 1.5970  
+Epoch 009 |  Time(s) 0.0946 | GPF-plus Loss 1.5501  
+Epoch 010 |  Time(s) 0.0799 | GPF-plus Loss 1.5055  
+Epoch 011 |  Time(s) 0.0796 | GPF-plus Loss 1.4641  
+Epoch 012 |  Time(s) 0.0743 | GPF-plus Loss 1.4359  
+Epoch 013 |  Time(s) 0.0751 | GPF-plus Loss 1.3967  
+Epoch 014 |  Time(s) 0.0763 | GPF-plus Loss 1.3627  
+Epoch 015 |  Time(s) 0.0741 | GPF-plus Loss 1.3489  
+Epoch 016 |  Time(s) 0.0780 | GPF-plus Loss 1.3354  
+Epoch 017 |  Time(s) 0.0719 | GPF-plus Loss 1.3029  
+Epoch 018 |  Time(s) 0.0826 | GPF-plus Loss 1.2843  
+Epoch 019 |  Time(s) 0.0746 | GPF-plus Loss 1.2788  
+Epoch 020 |  Time(s) 0.0817 | GPF-plus Loss 1.2537  
+Epoch 021 |  Time(s) 0.0750 | GPF-plus Loss 1.2490  
+Epoch 022 |  Time(s) 0.0818 | GPF-plus Loss 1.2253  
+Epoch 023 |  Time(s) 0.0807 | GPF-plus Loss 1.2248  
+Epoch 024 |  Time(s) 0.0783 | GPF-plus Loss 1.2023  
+Epoch 025 |  Time(s) 0.0784 | GPF-plus Loss 1.1931  
+Epoch 026 |  Time(s) 0.0794 | GPF-plus Loss 1.1855  
+Epoch 027 |  Time(s) 0.0779 | GPF-plus Loss 1.1671  
+Epoch 028 |  Time(s) 0.0780 | GPF-plus Loss 1.1596  
+Epoch 029 |  Time(s) 0.0781 | GPF-plus Loss 1.1567  
+Epoch 030 |  Time(s) 0.0853 | GPF-plus Loss 1.1444  
+Epoch 031 |  Time(s) 0.0855 | GPF-plus Loss 1.1357  
+Epoch 032 |  Time(s) 0.0797 | GPF-plus Loss 1.1308  
+Epoch 033 |  Time(s) 0.0866 | GPF-plus Loss 1.1266  
+Epoch 034 |  Time(s) 0.0960 | GPF-plus Loss 1.1226  
+Epoch 035 |  Time(s) 0.0960 | GPF-plus Loss 1.1183  
+Epoch 036 |  Time(s) 0.0828 | GPF-plus Loss 1.1154  
+Epoch 037 |  Time(s) 0.0820 | GPF-plus Loss 1.1136  
+Epoch 038 |  Time(s) 0.1261 | GPF-plus Loss 1.1070  
+Epoch 039 |  Time(s) 0.1505 | GPF-plus Loss 1.0981  
+Epoch 040 |  Time(s) 0.0874 | GPF-plus Loss 1.0916  
+Epoch 041 |  Time(s) 0.0789 | GPF-plus Loss 1.0917  
+Epoch 042 |  Time(s) 0.0864 | GPF-plus Loss 1.0883  
+Epoch 043 |  Time(s) 0.0839 | GPF-plus Loss 1.0857  
+Epoch 044 |  Time(s) 0.0829 | GPF-plus Loss 1.0841  
+Epoch 045 |  Time(s) 0.0844 | GPF-plus Loss 1.0832  
+Epoch 046 |  Time(s) 0.0856 | GPF-plus Loss 1.0831  
+Epoch 047 |  Time(s) 0.0755 | GPF-plus Loss 1.0830  
+Epoch 048 |  Time(s) 0.0776 | GPF-plus Loss 1.0828  
+Epoch 049 |  Time(s) 0.0753 | GPF-plus Loss 1.0826  
+Epoch 050 |  Time(s) 0.0762 | GPF-plus Loss 1.0817  
+Epoch 051 |  Time(s) 0.0832 | GPF-plus Loss 1.0817  
+Epoch 052 |  Time(s) 0.0925 | GPF-plus Loss 1.0817  
+Epoch 053 |  Time(s) 0.0823 | GPF-plus Loss 1.0820  
+Epoch 054 |  Time(s) 0.0836 | GPF-plus Loss 1.0827  
+Epoch 055 |  Time(s) 0.0821 | GPF-plus Loss 1.0821  
+Epoch 056 |  Time(s) 0.0809 | GPF-plus Loss 1.0822  
+Epoch 057 |  Time(s) 0.0846 | GPF-plus Loss 1.0822  
+Epoch 058 |  Time(s) 0.0809 | GPF-plus Loss 1.0821  
+Epoch 059 |  Time(s) 0.0800 | GPF-plus Loss 1.0821  
+Epoch 060 |  Time(s) 0.0834 | GPF-plus Loss 1.0825  
+Epoch 061 |  Time(s) 0.0830 | GPF-plus Loss 1.0827  
+Epoch 062 |  Time(s) 0.0830 | GPF-plus Loss 1.0828  
+Epoch 063 |  Time(s) 0.0818 | GPF-plus Loss 1.0827  
+Epoch 064 |  Time(s) 0.2126 | GPF-plus Loss 1.0828  
+Epoch 065 |  Time(s) 0.0840 | GPF-plus Loss 1.0826  
+Epoch 066 |  Time(s) 0.0764 | GPF-plus Loss 1.0827  
+Epoch 067 |  Time(s) 0.2527 | GPF-plus Loss 1.0825  
+Epoch 068 |  Time(s) 0.0910 | GPF-plus Loss 1.0822  
+Epoch 069 |  Time(s) 0.2211 | GPF-plus Loss 1.0820  
+Epoch 070 |  Time(s) 0.0810 | GPF-plus Loss 1.0815  
+Epoch 071 |  Time(s) 0.0917 | GPF-plus Loss 1.0811  
+Epoch 072 |  Time(s) 0.0872 | GPF-plus Loss 1.0791  
+Epoch 073 |  Time(s) 0.0943 | GPF-plus Loss 1.0652  
+Epoch 074 |  Time(s) 0.0846 | GPF-plus Loss 1.0664  
+Epoch 075 |  Time(s) 0.1751 | GPF-plus Loss 1.1035  
+Epoch 076 |  Time(s) 0.1140 | GPF-plus Loss 1.1041  
+Epoch 077 |  Time(s) 0.0826 | GPF-plus Loss 1.0559  
+Epoch 078 |  Time(s) 0.1460 | GPF-plus Loss 1.0676  
+Epoch 079 |  Time(s) 0.0832 | GPF-plus Loss 1.0615  
+Epoch 080 |  Time(s) 0.1954 | GPF-plus Loss 1.0550  
+Epoch 081 |  Time(s) 0.0889 | GPF-plus Loss 1.0565  
+Epoch 082 |  Time(s) 0.1707 | GPF-plus Loss 1.0536  
+Epoch 083 |  Time(s) 0.0844 | GPF-plus Loss 1.0538  
+Epoch 084 |  Time(s) 0.1809 | GPF-plus Loss 1.0511  
+Epoch 085 |  Time(s) 0.0917 | GPF-plus Loss 1.0490  
+Epoch 086 |  Time(s) 0.0835 | GPF-plus Loss 1.0478  
+Epoch 087 |  Time(s) 0.0735 | GPF-plus Loss 1.0479  
+Epoch 088 |  Time(s) 0.1012 | GPF-plus Loss 1.0481  
+Epoch 089 |  Time(s) 0.0902 | GPF-plus Loss 1.0483  
+Epoch 090 |  Time(s) 0.1112 | GPF-plus Loss 1.0474  
+Epoch 091 |  Time(s) 0.1487 | GPF-plus Loss 1.0465  
+Epoch 092 |  Time(s) 0.1077 | GPF-plus Loss 1.0462  
+Epoch 093 |  Time(s) 0.2657 | GPF-plus Loss 1.0463  
+Epoch 094 |  Time(s) 0.0853 | GPF-plus Loss 1.0465  
+Epoch 095 |  Time(s) 0.2827 | GPF-plus Loss 1.0464  
+Epoch 096 |  Time(s) 0.1039 | GPF-plus Loss 1.0458  
+Epoch 097 |  Time(s) 0.0853 | GPF-plus Loss 1.0456  
+Epoch 098 |  Time(s) 0.3093 | GPF-plus Loss 1.0460  
+Epoch 099 |  Time(s) 0.0837 | GPF-plus Loss 1.0465  
+Epoch 100 |  Time(s) 0.3156 | GPF-plus Loss 1.0468  
+Batch 0/19 Acc: 0.5800 | Macro-F1: 0.5233
+Batch 1/19 Acc: 0.4900 | Macro-F1: 0.4293
+Batch 2/19 Acc: 0.4900 | Macro-F1: 0.4555
+Batch 3/19 Acc: 0.5700 | Macro-F1: 0.5188
+Batch 4/19 Acc: 0.4100 | Macro-F1: 0.3979
+Batch 5/19 Acc: 0.4700 | Macro-F1: 0.4423
+Batch 6/19 Acc: 0.4700 | Macro-F1: 0.4632
+Batch 7/19 Acc: 0.4300 | Macro-F1: 0.3922
+Batch 8/19 Acc: 0.5500 | Macro-F1: 0.4758
+Batch 9/19 Acc: 0.4800 | Macro-F1: 0.4880
+Batch 10/19 Acc: 0.5400 | Macro-F1: 0.4650
+Batch 11/19 Acc: 0.4100 | Macro-F1: 0.4332
+Batch 12/19 Acc: 0.3500 | Macro-F1: 0.3334
+Batch 13/19 Acc: 0.4300 | Macro-F1: 0.3961
+Batch 14/19 Acc: 0.4100 | Macro-F1: 0.3921
+Batch 15/19 Acc: 0.4100 | Macro-F1: 0.4347
+Batch 16/19 Acc: 0.4700 | Macro-F1: 0.4005
+Batch 17/19 Acc: 0.4400 | Macro-F1: 0.4457
+Batch 18/19 Acc: 0.3889 | Macro-F1: 0.3500
+Final True Accuracy: 0.4637 | Macro F1 Score: 0.4462
+best_loss [1.0467791557312012]
+{1: {1: 0.46367520093917847}}
+{1: {1: 0.46367520093917847}}
+########################################################################################
+seed: 1 | split 1 : 0.46367520093917847
+# Seed 1 Muti Split Final Acc: 0.4637±0.0000
+########################################################################################
+There's only one result, it's recommended to try several seeds.
+split: 1 | seed 1 : 0.46367520093917847
+# Split 1 Muti Seed Acc without min value: 0.4637±0.0000
+########################################################################################

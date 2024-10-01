@@ -7,7 +7,7 @@ import torch.utils.data as Data1
 from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process, cmd, MLP, train_MLP, get_psu_labels, finetune_answering, get_detector
 from prompt_graph.evaluation import GPPTEva, GNNNodeEva, GpromptEva, MultiGpromptEva, GPFEva, AllInOneEva, RobustPromptInductiveEva, RobustPromptTranductiveEva,GPFTranductiveEva
 from prompt_graph.data import induced_graphs, split_induced_graphs, split_induced_graphs_save_relabel_central_node_and_raw_index, load4node_shot_index, load4node_attack_shot_index, load4node_attack_specified_shot_index
-
+from  easydict  import EasyDict
 
 from .task import BaseTask
 import time
@@ -30,7 +30,7 @@ class NodeTask(BaseTask):
             self.task_type = 'NodeTask'
 
             if self.attack_downstream:
-                  assert self.attack_method != 'None', 'No specific attacks were designated.'
+                  # assert self.attack_method != 'None', 'No specific attacks were designated.'
                   self.load_shot_attack_data()
             else:
                   print('load raw data')
@@ -44,6 +44,7 @@ class NodeTask(BaseTask):
 
 
       def process_multigprompt_data(self, data):
+            data = data.cpu()
             adj = to_scipy_sparse_matrix(data.edge_index).tocsr()
             # Convert features to dense format and then to scipy sparse matrix in lil format
             features = sp.lil_matrix(data.x.numpy())
@@ -70,13 +71,25 @@ class NodeTask(BaseTask):
             if self.specified:
                   # 对指定的train/val/test划分方式进行攻击，因为一些方法对不同的划分会产生不同的分布，这样能更加精准的实施攻击，但是对于每一个攻击都要实施一下，攻击成本更大
                   print("load LLC or attacked data with specified split")
-                  data_dir_name = 'data_attack_fewshot_save_relabel_central_node' 
+                  data_dir_name = 'data_attack_fewshot' 
                   self.data, self.dataset = load4node_attack_specified_shot_index(data_dir_name, self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
             else:
                   # 已经存在对默认的train/val/test划分方式进行攻击的数据集，从默认数据集中的train中提取不同shot的index, 这样更科学，从默认的攻击划分中进行抽取而不是从全局随机抽取可以相对保留攻击的效果
                   print('load LLC or attacked shot data with default split')
-                  data_dir_name = 'data_attack_from_default_split' 
-                  self.data, self.dataset = load4node_attack_shot_index(data_dir_name, self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+                  if self.adaptive:
+                        data_dir_name = 'data_unit_attack_from_default_split' 
+                        adaptive_dict = EasyDict()
+                        adaptive_dict['PARAM'] = {
+                              "scenario": self.adaptive_scenario, 
+                              "split":    self.adaptive_split, 
+                              "adaptive_attack_model": self.adaptive_attack_model, 
+                              "ptb_rate":  self.adaptive_ptb_rate
+                        }
+                        self.data, self.dataset = load4node_attack_shot_index(data_dir_name, self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split, adaptive=self.adaptive, adaptive_dict = adaptive_dict['PARAM'])
+                  else:
+                        data_dir_name = 'data_attack_from_default_split' 
+                        self.data, self.dataset = load4node_attack_shot_index(data_dir_name, self.dataset_name, self.attack_method, shot_num = self.shot_num, run_split= self.run_split)
+
 
             if self.prompt_type == 'MultiGprompt':
                   self.process_multigprompt_data(self.data)
@@ -84,13 +97,18 @@ class NodeTask(BaseTask):
                   self.input_dim = self.data.x.shape[1]
                   self.output_dim = self.dataset.num_classes
 
-            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt-I']:
-                  file_dir = './{}/{}/shot_{}/{}/induced_graph/{}'.format(data_dir_name, self.dataset_name, str(self.shot_num), str(self.run_split), self.attack_method)
-                  file_path = os.path.join(file_dir, 'induced_graph.pkl')
 
+
+
+            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt-I']:
+                  if self.adaptive:
+                        file_dir = './{}/{}/{}/{}/{}/{}/shot_{}/{}/induced_graph/'.format(data_dir_name, self.dataset_name, self.adaptive_scenario, str(self.adaptive_split), self.adaptive_attack_model, str(self.adaptive_ptb_rate), str(self.shot_num), str(self.run_split))
+                  else:
+                        file_dir = './{}/{}/shot_{}/{}/induced_graph/{}'.format(data_dir_name, self.dataset_name, str(self.shot_num), str(self.run_split), self.attack_method)
+                  file_path = os.path.join(file_dir, 'induced_graph.pkl')
                   # 注意，换shot num的时候要把induced graph删掉
                   if os.path.exists(file_path):
-                        print('Begin load induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
+                        # print('Begin load induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
                         with open(file_path, 'rb') as f:
                               graphs_dict = pickle.load(f)
                         self.train_dataset = graphs_dict['train_graphs']
@@ -98,7 +116,7 @@ class NodeTask(BaseTask):
                         self.val_dataset = graphs_dict['val_graphs']
                   else:
                         os.makedirs(file_dir, exist_ok=True) 
-                        print('Begin split induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
+                        # print('Begin split induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
                         # split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
                         split_induced_graphs_save_relabel_central_node_and_raw_index(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
                         with open(file_path, 'rb') as f:
@@ -106,8 +124,6 @@ class NodeTask(BaseTask):
                         self.train_dataset = graphs_dict['train_graphs']
                         self.test_dataset = graphs_dict['test_graphs']
                         self.val_dataset = graphs_dict['val_graphs']
-            
-
             else:
                   self.data.to(self.device)
 
@@ -608,7 +624,6 @@ class NodeTask(BaseTask):
                   test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
                   val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
                   print("prepare induce graph data is finished!")
-
 
 
             print("run {}".format(self.prompt_type))

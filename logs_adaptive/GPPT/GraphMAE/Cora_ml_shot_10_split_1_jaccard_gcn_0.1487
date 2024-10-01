@@ -1,0 +1,63 @@
+load LLC or attacked shot data with default split
+{'scenario': 'poisoning', 'split': 0, 'adaptive_attack_model': 'jaccard_gcn', 'ptb_rate': 0.1487}
+======================
+Number of graphs: 1
+Number of features: 1433
+Number of classes: 7
+
+Data(x=[2485, 1433], edge_index=[2, 14103], y=[2485], train_mask=[2485], val_mask=[2485], test_mask=[2485])
+===========================================================================================================
+Number of nodes: 2485
+Number of edges: 14103
+Average node degree: 5.68
+Has isolated nodes: False
+Has self-loops: True
+Is undirected: True
+None
+tensor([1756,  307,   33, 1404,  188,  392, 2426,  422, 1970, 1832, 2052,  775,
+         774, 2081, 1717, 1530, 1793, 1991, 2055, 1901, 2068,  689,  254, 1280,
+         225,  252, 1493, 1286,  849, 1975,  870, 2131, 1445, 1204, 1459, 1695,
+         432, 1570, 1701, 2093, 1394, 1120,  728, 1165, 1540,  934, 2001,  428,
+        1058, 1297, 2302, 1798,  937, 1929, 1764, 2155, 1979, 1085, 1866,  145,
+        1142, 2143, 1830,  532,  803, 2058, 1461, 1358, 1672,  682])
+tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
+len train nodes: 70
+len val   nodes: 241
+len test  nodes: 2174
+Successfully loaded pre-trained weights!
+use GPPT Prompt
+run GPPT
+Epoch 001 |  Time(s) 1.8119 | GPPT Loss 1.9145  
+Epoch 002 |  Time(s) 1.5175 | GPPT Loss 1.9151  
+Epoch 003 |  Time(s) 2.8036 | GPPT Loss 1.9075  
+Epoch 004 |  Time(s) 2.6579 | GPPT Loss 1.8989  
+Epoch 005 |  Time(s) 2.7404 | GPPT Loss 1.8899  
+Epoch 006 |  Time(s) 2.8380 | GPPT Loss 1.8808  
+Epoch 007 |  Time(s) 2.5991 | GPPT Loss 1.8715  
+Epoch 008 |  Time(s) 2.6790 | GPPT Loss 1.8624  
+Epoch 009 |  Time(s) 2.5386 | GPPT Loss 1.8532  
+Epoch 010 |  Time(s) 2.7573 | GPPT Loss 1.8442  
+Epoch 011 |  Time(s) 2.6956 | GPPT Loss 1.8352  
+Epoch 012 |  Time(s) 2.8094 | GPPT Loss 1.8264  
+Epoch 013 |  Time(s) 2.6358 | GPPT Loss 1.8177  
+Epoch 014 |  Time(s) 2.6442 | GPPT Loss 1.8091  
+Epoch 015 |  Time(s) 2.6856 | GPPT Loss 1.8006  
+Epoch 016 |  Time(s) 2.8864 | GPPT Loss 1.7923  
+Epoch 017 |  Time(s) 2.5210 | GPPT Loss 1.7842  
+Epoch 018 |  Time(s) 2.7443 | GPPT Loss 1.7761  
+Epoch 019 |  Time(s) 2.7055 | GPPT Loss 1.7682  
+Epoch 020 |  Time(s) 2.6834 | GPPT Loss 1.7605  
+Final True Accuracy: 0.3652 | Macro F1 Score: 0.3167
+best_loss [1.7604522705078125]
+{1: {1: 0.3652254045009613}}
+{1: {1: 0.3652254045009613}}
+########################################################################################
+seed: 1 | split 1 : 0.3652254045009613
+# Seed 1 Muti Split Final Acc: 0.3652±0.0000
+########################################################################################
+There's only one result, it's recommended to try several seeds.
+split: 1 | seed 1 : 0.3652254045009613
+# Split 1 Muti Seed Acc without min value: 0.3652±0.0000
+########################################################################################

@@ -2,12 +2,12 @@ import os.path as osp
 from torch_geometric.datasets import Planetoid, CitationFull, WikiCS, Coauthor, Amazon,Flickr,Reddit,Yelp, PPI
 import torch_geometric.transforms as T
 from ogb.nodeproppred import PygNodePropPredDataset # 会卡住 pip uninstall setuptools 解决
-from data_pyg.Attack_data.attackdata           import AttackDataset
-
+from data_pyg.Attack_data.attackdata               import AttackDataset
+from data_pyg.Attack_unit_test_data.attackunitdata import AttackUnitDataset
 # from data_pyg.Reddit_small.Reddit_small import Reddit_small
 
-def get_dataset(path, name, attackmethod= None, attackptb = None):
-    assert name in ['Cora', 'CiteSeer', 'PubMed', 'DBLP', 'WikiCS', 'Coauthor-CS', 'Coauthor-Phy', 'Amazon-Computers', 'Amazon-Photo', 'ogbn-arxiv','Flickr','Yelp','Reddit','Attack-Cora','Attack-Cora_ml','Attack-Citeseer','Attack-Pubmed','Attack-polblogs','PPI','Reddit_small']
+def get_dataset(path, name, attackmethod= None, attackptb = None, adaptive_dict=None):
+    assert name in ['Cora', 'CiteSeer', 'PubMed', 'DBLP', 'WikiCS', 'Coauthor-CS', 'Coauthor-Phy', 'Amazon-Computers', 'Amazon-Photo', 'ogbn-arxiv','Flickr','Yelp','Reddit','Attack-Cora','Attack-Cora_ml','Attack-Citeseer','Attack-Pubmed','Attack-polblogs','Attack-Cora_ml','PPI','Reddit_small', 'Unit-Citeseer', 'Unit-Cora_ml']
     
     name = 'dblp' if name == 'DBLP' else name
     root_path = osp.expanduser('/home/songsh/MyPrompt/data_pyg')
@@ -46,6 +46,12 @@ def get_dataset(path, name, attackmethod= None, attackptb = None):
     if name.startswith('Attack'):
         return AttackDataset(root = path, name = name, attackmethod = attackmethod, ptb_rate=attackptb) # , transform=T.NormalizeFeatures()
         # 这里对特征进行normolize会导致预训练有问题，取消
+
+    # unit test
+    if name.startswith('Unit'):
+        return AttackUnitDataset(root = path , name = name , scenario=adaptive_dict.scenario, split = adaptive_dict.split, adaptive_attack_model= adaptive_dict.adaptive_attack_model, ptb_rate=adaptive_dict.ptb_rate)
+
+
 
     if name.startswith('ogbn'):
         return PygNodePropPredDataset(root=osp.join(root_path, 'OGB'), name=name) #S2GAE里不需要, transform=T.NormalizeFeatures()

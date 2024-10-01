@@ -1,0 +1,886 @@
+load LLC or attacked shot data with default split
+{'scenario': 'poisoning', 'split': 0, 'adaptive_attack_model': 'svd_gcn', 'ptb_rate': 0.1274}
+======================
+Number of graphs: 1
+Number of features: 1433
+Number of classes: 7
+
+Data(x=[2485, 1433], edge_index=[2, 13915], y=[2485], train_mask=[2485], val_mask=[2485], test_mask=[2485])
+===========================================================================================================
+Number of nodes: 2485
+Number of edges: 13915
+Average node degree: 5.60
+Has isolated nodes: False
+Has self-loops: True
+Is undirected: True
+None
+tensor([1756,  307,   33, 1404,  188,  392, 2426,  422, 1970, 1832, 2052,  775,
+         774, 2081, 1717, 1530, 1793, 1991, 2055, 1901, 2068,  689,  254, 1280,
+         225,  252, 1493, 1286,  849, 1975,  870, 2131, 1445, 1204, 1459, 1695,
+         432, 1570, 1701, 2093, 1394, 1120,  728, 1165, 1540,  934, 2001,  428,
+        1058, 1297, 2302, 1798,  937, 1929, 1764, 2155, 1979, 1085, 1866,  145,
+        1142, 2143, 1830,  532,  803, 2058, 1461, 1358, 1672,  682])
+tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
+len train nodes: 70
+len val   nodes: 241
+len test  nodes: 2174
+Successfully loaded pre-trained weights!
+use All-in-one Prompt
+prepare induce graph data is finished!
+run All-in-one
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.9460 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.9457 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.9453 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.9450 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.9447 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.9444 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.9440 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.9437 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.9434 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.9430 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.9427 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.9424 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.9421 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.9418 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.9414 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.9411 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.9408 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.9405 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.9401 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.9398 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.9395 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.9396 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.9392 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.9386 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.9383 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.9383 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.9376 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.9372 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.9370 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.9364 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.9359 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.9357 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.9355 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.9351 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.9348 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.9346 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.9344 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.9339 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.9336 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.9334 
+Epoch 001 |  Time(s) 7.9945 | All-in-one Loss 1.9334  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.9332 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.9325 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.9318 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.9311 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.9303 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.9296 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.9288 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.9281 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.9273 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.9265 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.9257 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.9249 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.9241 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.9233 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.9226 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.9218 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.9210 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.9202 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.9194 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.9186 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.9178 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.9175 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.9213 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.9169 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.9196 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.9167 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.9177 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.9168 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.9153 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.9160 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.9137 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.9149 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.9143 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.9129 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.9129 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.9123 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.9122 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.9110 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.9113 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.9110 
+Epoch 002 |  Time(s) 6.2276 | All-in-one Loss 1.9110  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.9098 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.9087 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.9076 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.9065 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.9053 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.9042 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.9030 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.9018 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.9006 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.8994 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.8982 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.8970 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.8958 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.8945 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.8933 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.8921 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.8908 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.8896 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.8883 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.8871 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.8858 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.8863 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.8919 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.8885 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.8902 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.8900 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.8831 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.8885 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.8892 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.8875 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.8871 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.8806 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.8836 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.8839 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.8839 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.8820 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.8784 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.8819 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.8801 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.8775 
+Epoch 003 |  Time(s) 5.9239 | All-in-one Loss 1.8775  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.8785 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.8754 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.8748 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.8744 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.8724 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.8710 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.8703 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.8693 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.8683 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.8669 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.8657 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.8650 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.8640 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.8626 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.8616 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.8608 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.8598 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.8587 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.8576 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.8566 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.8557 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.8594 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.8620 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.8678 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.8674 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.8700 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.8718 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.8573 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.8615 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.8620 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.8658 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.8609 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.8621 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.8575 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.8544 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.8550 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.8558 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.8499 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.8536 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.8530 
+Epoch 004 |  Time(s) 5.8527 | All-in-one Loss 1.8530  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.8529 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.8498 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.8474 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.8466 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.8468 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.8452 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.8438 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.8427 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.8417 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.8413 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.8400 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.8387 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.8380 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.8372 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.8362 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.8353 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.8344 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.8335 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.8325 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.8317 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.8309 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.8310 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.8302 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.8302 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.8296 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.8291 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.8288 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.8282 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.8282 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.8280 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.8285 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.8279 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.8277 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.8271 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.8262 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.8252 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.8245 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.8244 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.8241 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.8241 
+Epoch 005 |  Time(s) 6.0489 | All-in-one Loss 1.8241  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.8241 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.8224 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.8226 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.8206 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.8204 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.8193 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.8182 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.8179 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.8166 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.8159 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.8152 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.8141 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.8136 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.8126 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.8117 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.8112 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.8102 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.8094 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.8088 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.8079 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.8072 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.8073 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.8114 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.8321 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.8422 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.8689 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.8439 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.8997 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.8702 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.8377 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.8150 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.8288 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.8337 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.8340 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.8361 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.8385 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.8283 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.8338 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.8295 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.8310 
+Epoch 006 |  Time(s) 5.8267 | All-in-one Loss 1.8310  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.8343 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.8273 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.8341 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.8283 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.8263 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.8297 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.8269 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.8244 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.8258 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.8256 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.8226 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.8221 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.8223 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.8189 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.8135 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.8099 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.8177 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.8112 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.8088 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.8103 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.8119 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.8128 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.8128 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.8159 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.8135 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.8090 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.8164 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.8072 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.8093 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.8058 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.8068 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.8084 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.8053 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.8081 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.8047 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.8059 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.8028 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.8048 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.8040 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.8028 
+Epoch 007 |  Time(s) 6.0797 | All-in-one Loss 1.8028  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.8036 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.8021 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.8019 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.8023 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.8008 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.8003 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.8002 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7998 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7996 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7985 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7981 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7983 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7975 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7969 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7967 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7963 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7960 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7954 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7950 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7948 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7943 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.8015 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7995 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7958 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.8011 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7975 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7953 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7975 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7955 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7953 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7946 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7937 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7950 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7923 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7927 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7935 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7912 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7924 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7924 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7913 
+Epoch 008 |  Time(s) 5.9864 | All-in-one Loss 1.7913  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7910 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7902 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7898 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7897 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7892 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7886 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7883 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7881 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7875 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7871 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7869 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7864 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7860 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7857 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7853 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7849 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7845 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7842 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7837 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7834 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7830 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7841 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7841 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7858 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7883 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7872 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7837 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7840 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7832 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7849 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7843 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7820 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7811 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7818 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7828 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7840 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7846 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7811 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7808 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7804 
+Epoch 009 |  Time(s) 6.0026 | All-in-one Loss 1.7804  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7804 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7794 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7797 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7789 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7785 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7783 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7778 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7775 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7770 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7768 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7763 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7758 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7757 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7751 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7748 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7745 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7741 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7738 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7734 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7730 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7727 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7736 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7733 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7729 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7742 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7781 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7869 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7826 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7799 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7789 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7893 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7761 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7761 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.8020 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7900 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7878 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7931 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.8028 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7873 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.8024 
+Epoch 010 |  Time(s) 6.0266 | All-in-one Loss 1.8024  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.8077 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7858 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.8025 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7969 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7885 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7914 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7951 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7880 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7872 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7905 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7871 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7869 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7858 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7863 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7853 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7851 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7847 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7832 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7843 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7835 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7824 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.8145 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7824 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.8182 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7990 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.8107 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7872 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.8141 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7935 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.8092 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7894 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.8072 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.8013 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.8038 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.8068 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7847 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.8092 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7916 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.8019 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7877 
+Epoch 011 |  Time(s) 5.9515 | All-in-one Loss 1.7877  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7973 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7835 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7872 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7942 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7861 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7824 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7867 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7865 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7831 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7819 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7837 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7827 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7807 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7816 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7808 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7802 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7803 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7798 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7794 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7788 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7791 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.8176 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.8045 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.8119 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7888 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.8033 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7774 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7991 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7792 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7918 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7798 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7891 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7813 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7865 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7771 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7845 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7767 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7832 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7768 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7817 
+Epoch 012 |  Time(s) 6.4669 | All-in-one Loss 1.7817  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7771 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7769 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7775 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7765 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7761 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7766 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7761 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7755 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7756 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7758 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7750 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7748 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7752 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7748 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7742 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7744 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7745 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7740 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7738 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7739 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7737 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7831 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7738 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7819 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7735 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7795 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7734 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7785 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7735 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7768 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7733 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7757 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7738 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7748 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7738 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7739 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7737 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7731 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7737 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7727 
+Epoch 013 |  Time(s) 6.0678 | All-in-one Loss 1.7727  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7736 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7724 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7722 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7728 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7726 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7718 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7717 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7720 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7717 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7713 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7712 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7713 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7711 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7708 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7707 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7707 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7705 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7703 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7702 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7702 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7700 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7732 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7703 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7720 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7702 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7712 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7701 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7703 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7704 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7697 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7703 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7695 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7701 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7691 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7698 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7690 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7695 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7691 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7692 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7690 
+Epoch 014 |  Time(s) 6.3483 | All-in-one Loss 1.7690  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7689 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7687 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7685 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7685 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7683 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7682 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7680 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7680 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7678 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7677 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7676 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7675 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7673 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7672 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7671 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7670 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7669 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7667 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7666 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7665 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7664 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7663 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7662 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7662 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7661 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7661 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7660 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7660 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7659 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7658 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7658 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7657 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7656 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7656 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7655 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7654 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7653 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7653 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7652 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7651 
+Epoch 015 |  Time(s) 6.3398 | All-in-one Loss 1.7651  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7650 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7648 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7646 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7644 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7641 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7636 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7627 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7605 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7538 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7547 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7496 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7501 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7519 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7507 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7483 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7503 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7488 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7481 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7491 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7485 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7474 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7481 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7479 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7474 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7471 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7470 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7475 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7473 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7468 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7466 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7467 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7470 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7467 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7463 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7463 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7463 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7464 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7462 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7460 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7459 
+Epoch 016 |  Time(s) 6.6386 | All-in-one Loss 1.7459  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7460 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7468 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7462 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7456 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7460 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7456 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7450 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7454 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7449 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7445 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7447 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7443 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7440 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7441 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7437 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7435 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7435 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7432 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7430 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7429 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7427 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7426 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7428 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7428 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7427 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7424 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7422 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7422 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7422 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7422 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7421 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7420 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7418 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7417 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7417 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7417 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7416 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7415 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7414 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7413 
+Epoch 017 |  Time(s) 6.7629 | All-in-one Loss 1.7413  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7412 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7411 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7410 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7407 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7406 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7404 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7403 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7401 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7399 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7398 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7396 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7394 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7393 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7391 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7390 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7388 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7386 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7385 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7383 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7382 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7380 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7379 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7379 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7378 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7378 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7377 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7376 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7375 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7375 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7374 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7373 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7373 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7372 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7372 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7371 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7370 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7370 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7369 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7368 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7368 
+Epoch 018 |  Time(s) 6.8326 | All-in-one Loss 1.7368  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7367 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7365 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7364 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7362 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7361 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7359 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7358 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7356 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7354 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7353 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7351 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7350 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7348 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7346 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7345 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7343 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7342 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7340 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7339 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7337 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7335 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7335 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7335 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7337 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7339 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7346 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7356 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7379 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.7395 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7424 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7397 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7377 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7349 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7334 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7327 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7328 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7334 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7342 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7355 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7361 
+Epoch 019 |  Time(s) 6.6648 | All-in-one Loss 1.7361  
+frozen gnn | frozen prompt | *tune answering function... 1/20 ,loss: 1.7367 
+frozen gnn | frozen prompt | *tune answering function... 2/20 ,loss: 1.7322 
+frozen gnn | frozen prompt | *tune answering function... 3/20 ,loss: 1.7344 
+frozen gnn | frozen prompt | *tune answering function... 4/20 ,loss: 1.7354 
+frozen gnn | frozen prompt | *tune answering function... 5/20 ,loss: 1.7320 
+frozen gnn | frozen prompt | *tune answering function... 6/20 ,loss: 1.7327 
+frozen gnn | frozen prompt | *tune answering function... 7/20 ,loss: 1.7340 
+frozen gnn | frozen prompt | *tune answering function... 8/20 ,loss: 1.7320 
+frozen gnn | frozen prompt | *tune answering function... 9/20 ,loss: 1.7314 
+frozen gnn | frozen prompt | *tune answering function... 10/20 ,loss: 1.7328 
+frozen gnn | frozen prompt | *tune answering function... 11/20 ,loss: 1.7317 
+frozen gnn | frozen prompt | *tune answering function... 12/20 ,loss: 1.7307 
+frozen gnn | frozen prompt | *tune answering function... 13/20 ,loss: 1.7317 
+frozen gnn | frozen prompt | *tune answering function... 14/20 ,loss: 1.7312 
+frozen gnn | frozen prompt | *tune answering function... 15/20 ,loss: 1.7302 
+frozen gnn | frozen prompt | *tune answering function... 16/20 ,loss: 1.7307 
+frozen gnn | frozen prompt | *tune answering function... 17/20 ,loss: 1.7307 
+frozen gnn | frozen prompt | *tune answering function... 18/20 ,loss: 1.7298 
+frozen gnn | frozen prompt | *tune answering function... 19/20 ,loss: 1.7299 
+frozen gnn | frozen prompt | *tune answering function... 20/20 ,loss: 1.7301 
+frozen gnn | *tune prompt |frozen answering function... 1/20 ,loss: 1.7294 
+frozen gnn | *tune prompt |frozen answering function... 2/20 ,loss: 1.7359 
+frozen gnn | *tune prompt |frozen answering function... 3/20 ,loss: 1.7517 
+frozen gnn | *tune prompt |frozen answering function... 4/20 ,loss: 1.7608 
+frozen gnn | *tune prompt |frozen answering function... 5/20 ,loss: 1.7294 
+frozen gnn | *tune prompt |frozen answering function... 6/20 ,loss: 1.7626 
+frozen gnn | *tune prompt |frozen answering function... 7/20 ,loss: 1.7939 
+frozen gnn | *tune prompt |frozen answering function... 8/20 ,loss: 1.7802 
+frozen gnn | *tune prompt |frozen answering function... 9/20 ,loss: 1.8146 
+frozen gnn | *tune prompt |frozen answering function... 10/20 ,loss: 1.7395 
+frozen gnn | *tune prompt |frozen answering function... 11/20 ,loss: 1.7627 
+frozen gnn | *tune prompt |frozen answering function... 12/20 ,loss: 1.7493 
+frozen gnn | *tune prompt |frozen answering function... 13/20 ,loss: 1.7633 
+frozen gnn | *tune prompt |frozen answering function... 14/20 ,loss: 1.7742 
+frozen gnn | *tune prompt |frozen answering function... 15/20 ,loss: 1.7951 
+frozen gnn | *tune prompt |frozen answering function... 16/20 ,loss: 1.7933 
+frozen gnn | *tune prompt |frozen answering function... 17/20 ,loss: 1.7748 
+frozen gnn | *tune prompt |frozen answering function... 18/20 ,loss: 1.7618 
+frozen gnn | *tune prompt |frozen answering function... 19/20 ,loss: 1.7736 
+frozen gnn | *tune prompt |frozen answering function... 20/20 ,loss: 1.7813 
+Epoch 020 |  Time(s) 6.9980 | All-in-one Loss 1.7813  
+Batch 0 Acc: 0.3300 | Macro-F1: 0.2648
+Batch 1 Acc: 0.4000 | Macro-F1: 0.3133
+Batch 2 Acc: 0.4800 | Macro-F1: 0.3849
+Batch 3 Acc: 0.4200 | Macro-F1: 0.3652
+Batch 4 Acc: 0.4700 | Macro-F1: 0.3538
+Batch 5 Acc: 0.5300 | Macro-F1: 0.3029
+Batch 6 Acc: 0.4400 | Macro-F1: 0.3371
+Batch 7 Acc: 0.3000 | Macro-F1: 0.2795
+Batch 8 Acc: 0.4100 | Macro-F1: 0.3388
+Batch 9 Acc: 0.4500 | Macro-F1: 0.3302
+Batch 10 Acc: 0.3700 | Macro-F1: 0.2845
+Batch 11 Acc: 0.3200 | Macro-F1: 0.2637
+Batch 12 Acc: 0.4300 | Macro-F1: 0.4008
+Batch 13 Acc: 0.3000 | Macro-F1: 0.2805
+Batch 14 Acc: 0.4400 | Macro-F1: 0.3581
+Batch 15 Acc: 0.4500 | Macro-F1: 0.3811
+Batch 16 Acc: 0.5000 | Macro-F1: 0.3286
+Batch 17 Acc: 0.2800 | Macro-F1: 0.2199
+Batch 18 Acc: 0.5300 | Macro-F1: 0.3655
+Batch 19 Acc: 0.3500 | Macro-F1: 0.2225
+Batch 20 Acc: 0.3600 | Macro-F1: 0.2927
+Batch 21 Acc: 0.3243 | Macro-F1: 0.3101
+Final True Accuracy: 0.4048 | Macro F1 Score: 0.3323
+best_loss [1.7812756299972534]
+{1: {1: 0.40478381514549255}}
+{1: {1: 0.40478381514549255}}
+########################################################################################
+seed: 1 | split 1 : 0.40478381514549255
+# Seed 1 Muti Split Final Acc: 0.4048±0.0000
+########################################################################################
+There's only one result, it's recommended to try several seeds.
+split: 1 | seed 1 : 0.40478381514549255
+# Split 1 Muti Seed Acc without min value: 0.4048±0.0000
+########################################################################################

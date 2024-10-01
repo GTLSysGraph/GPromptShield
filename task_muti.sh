@@ -1,19 +1,28 @@
-dataset_names=('Cora')
-prompt_names=('All-in-one')
-shot_nums=(5)
+#################################################################################
+# 'MultiGprompt' 'GPF'  'GPF-plus' 'RobustPrompt-GPF', 'RobustPrompt-GPFplus', 'RobustPrompt-T', 'GPF-Tranductive', 'GPF-plus-Tranductive'  'All-in-one' 'GPPT' 'Gprompt'
+dataset_names=('Citeseer')
+prompt_names=('GPPT' )
+pretrin_name='GraphMAE'
+pre_train_model_path='./pre_trained_model/Citeseer.GraphMAE.GCN.256hidden_dim.pth'
+epoch=20
+hid_dim=256
+shot_nums=(5 10)
 run_splits=(1)
+seed=1
+#################################################################################
 
-atk_methods=('Meta_Self')
-mtk_ptbs=(0.1)
-atk_ptbs=(0.1 0.2)
+atk_methods=('Meta_Self' 'heuristic' 'DICE' 'random')
+mtk_ptbs=(0.0 0.25)
+atk_ptbs=(0.5)
 
-# mtk_ptbs=(0.0 0.05 0.1 0.15 0.2 0.25)
+
+# mtk_ptbs=(0.0 0.05 0.1 0.15 0.2 0.25) /$pretrin_name
 # atk_ptbs=(0.0 0.1 0.2 0.3 0.4 0.5)
 # atk_methods=('Meta_Self' 'heuristic' 'DICE' 'random')
 
 
 process_num=0
-max_process_num=6
+max_process_num=3
 
 
 for dataset_name in "${dataset_names[@]}"; do
@@ -26,7 +35,7 @@ for dataset_name in "${dataset_names[@]}"; do
                         for atk_ptb in "${mtk_ptbs[@]}"; do
                             echo "运行顺序: $dataset_name $prompt_name $shot_num $run_split $atk_method $atk_ptb"
                     
-                            dir="./logs/${prompt_name}"
+                            dir="./logs/${prompt_name}/$pretrin_name"
                             if [ ! -d "$dir" ];then
                             mkdir $dir
                             echo "创建文件夹成功"
@@ -37,7 +46,7 @@ for dataset_name in "${dataset_names[@]}"; do
 
                             CUDA_VISIBLE_DEVICES=1
                             python MyTask.py \
-                            --pre_train_model_path './pre_trained_model/Cora.GraphCL.GCN.256hidden_dim.pth' \
+                            --pre_train_model_path $pre_train_model_path \
                             --task NodeTask \
                             --dataset_name $dataset_name \
                             --preprocess_method 'none' \
@@ -45,13 +54,13 @@ for dataset_name in "${dataset_names[@]}"; do
                             --prompt_type $prompt_name \
                             --shot_num $shot_num \
                             --run_split $run_split \
-                            --hid_dim 256 \
+                            --hid_dim $hid_dim \
                             --num_layer 2 \
-                            --epochs 20 \
-                            --seed 1 2 3 4 \
+                            --epochs $epoch \
+                            --seed $seed \
                             --attack_downstream \
                             --attack_method "${atk_method}-${atk_ptb}" \
-                            > "./logs/${prompt_name}/${dataset_name}_shot_${shot_num}_split_${run_split}_${atk_method}_${atk_ptb}" &
+                            > "./logs/${prompt_name}/$pretrin_name/${dataset_name}_shot_${shot_num}_split_${run_split}_${atk_method}_${atk_ptb}" &
 
                             process_num=`expr $process_num + 1`
                             process_num=`expr $process_num % $max_process_num`
@@ -64,7 +73,7 @@ for dataset_name in "${dataset_names[@]}"; do
                         for atk_ptb in "${atk_ptbs[@]}"; do
                             echo "运行顺序: $dataset_name $prompt_name $shot_num $run_split $atk_method $atk_ptb"
                     
-                            dir="./logs/${prompt_name}"
+                            dir="./logs/${prompt_name}/$pretrin_name"
                             if [ ! -d "$dir" ];then
                             mkdir $dir
                             echo "创建文件夹成功"
@@ -75,7 +84,7 @@ for dataset_name in "${dataset_names[@]}"; do
 
                             CUDA_VISIBLE_DEVICES=1
                             python MyTask.py \
-                            --pre_train_model_path './pre_trained_model/Cora.GraphCL.GCN.256hidden_dim.pth' \
+                            --pre_train_model_path $pre_train_model_path \
                             --task NodeTask \
                             --dataset_name $dataset_name \
                             --preprocess_method 'none' \
@@ -83,13 +92,13 @@ for dataset_name in "${dataset_names[@]}"; do
                             --prompt_type $prompt_name \
                             --shot_num $shot_num \
                             --run_split $run_split \
-                            --hid_dim 256 \
+                            --hid_dim $hid_dim \
                             --num_layer 2 \
-                            --epochs 20 \
-                            --seed 1 2 3 4 \
+                            --epochs $epoch \
+                            --seed $seed \
                             --attack_downstream \
                             --attack_method "${atk_method}-${atk_ptb}" \
-                            > "./logs/${prompt_name}/${dataset_name}_shot_${shot_num}_split_${run_split}_${atk_method}_${atk_ptb}" &
+                            > "./logs/${prompt_name}/$pretrin_name/${dataset_name}_shot_${shot_num}_split_${run_split}_${atk_method}_${atk_ptb}" &
 
                             process_num=`expr $process_num + 1`
                             process_num=`expr $process_num % $max_process_num`

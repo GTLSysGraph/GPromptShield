@@ -118,7 +118,7 @@ def split_induced_graphs(name, data, file_path, smallest_size=10, largest_size=3
 
 # add by ssh
 def split_induced_graphs_save_relabel_central_node_and_raw_index(name, data, file_path, smallest_size=10, largest_size=30):
-    
+    data = data.cpu()
     train_graphs = []
     test_graphs = []
     val_graphs = []

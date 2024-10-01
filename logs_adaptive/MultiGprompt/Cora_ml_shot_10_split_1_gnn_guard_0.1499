@@ -1,0 +1,91 @@
+load LLC or attacked shot data with default split
+{'scenario': 'poisoning', 'split': 0, 'adaptive_attack_model': 'gnn_guard', 'ptb_rate': 0.1499}
+======================
+Number of graphs: 1
+Number of features: 1433
+Number of classes: 7
+
+Data(x=[2485, 1433], edge_index=[2, 14119], y=[2485], train_mask=[2485], val_mask=[2485], test_mask=[2485])
+===========================================================================================================
+Number of nodes: 2485
+Number of edges: 14119
+Average node degree: 5.68
+Has isolated nodes: False
+Has self-loops: True
+Is undirected: True
+None
+tensor([1756,  307,   33, 1404,  188,  392, 2426,  422, 1970, 1832, 2052,  775,
+         774, 2081, 1717, 1530, 1793, 1991, 2055, 1901, 2068,  689,  254, 1280,
+         225,  252, 1493, 1286,  849, 1975,  870, 2131, 1445, 1204, 1459, 1695,
+         432, 1570, 1701, 2093, 1394, 1120,  728, 1165, 1540,  934, 2001,  428,
+        1058, 1297, 2302, 1798,  937, 1929, 1764, 2155, 1979, 1085, 1866,  145,
+        1142, 2143, 1830,  532,  803, 2058, 1461, 1358, 1672,  682])
+tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6])
+len train nodes: 70
+len val   nodes: 241
+len test  nodes: 2174
+adj torch.Size([2485, 2485])
+feature (2485, 1433)
+Cora_ml
+Now use adaptive clean for pretrain !
+#############
+start sampling disconnected tuples
+run MultiGprompt
+Epoch 001 |  Time(s) 1.3462 | MultiGprompt Loss 1.9319  
+Epoch 002 |  Time(s) 0.3067 | MultiGprompt Loss 1.9311  
+Epoch 003 |  Time(s) 0.3442 | MultiGprompt Loss 1.9303  
+Epoch 004 |  Time(s) 0.3456 | MultiGprompt Loss 1.9296  
+Epoch 005 |  Time(s) 0.4434 | MultiGprompt Loss 1.9289  
+Epoch 006 |  Time(s) 0.4385 | MultiGprompt Loss 1.9283  
+Epoch 007 |  Time(s) 0.4442 | MultiGprompt Loss 1.9278  
+Epoch 008 |  Time(s) 0.4435 | MultiGprompt Loss 1.9273  
+Epoch 009 |  Time(s) 0.4654 | MultiGprompt Loss 1.9268  
+Epoch 010 |  Time(s) 0.4617 | MultiGprompt Loss 1.9264  
+Epoch 011 |  Time(s) 0.4521 | MultiGprompt Loss 1.9259  
+Epoch 012 |  Time(s) 0.4503 | MultiGprompt Loss 1.9254  
+Epoch 013 |  Time(s) 0.4457 | MultiGprompt Loss 1.9250  
+Epoch 014 |  Time(s) 0.4369 | MultiGprompt Loss 1.9247  
+Epoch 015 |  Time(s) 0.4586 | MultiGprompt Loss 1.9245  
+Epoch 016 |  Time(s) 0.4534 | MultiGprompt Loss 1.9243  
+Epoch 017 |  Time(s) 0.4518 | MultiGprompt Loss 1.9241  
+Epoch 018 |  Time(s) 0.4615 | MultiGprompt Loss 1.9238  
+Epoch 019 |  Time(s) 0.4509 | MultiGprompt Loss 1.9236  
+Epoch 020 |  Time(s) 0.4511 | MultiGprompt Loss 1.9233  
+Epoch 021 |  Time(s) 0.4432 | MultiGprompt Loss 1.9231  
+Epoch 022 |  Time(s) 0.4336 | MultiGprompt Loss 1.9227  
+Epoch 023 |  Time(s) 0.4441 | MultiGprompt Loss 1.9208  
+Epoch 024 |  Time(s) 0.4381 | MultiGprompt Loss 1.9226  
+Epoch 025 |  Time(s) 0.4480 | MultiGprompt Loss 1.9229  
+Epoch 026 |  Time(s) 0.4433 | MultiGprompt Loss 1.9229  
+Epoch 027 |  Time(s) 0.4547 | MultiGprompt Loss 1.9229  
+Epoch 028 |  Time(s) 0.4452 | MultiGprompt Loss 1.9229  
+Epoch 029 |  Time(s) 0.4569 | MultiGprompt Loss 1.9229  
+Epoch 030 |  Time(s) 0.4488 | MultiGprompt Loss 1.9228  
+Epoch 031 |  Time(s) 0.4464 | MultiGprompt Loss 1.9228  
+Epoch 032 |  Time(s) 0.4512 | MultiGprompt Loss 1.9229  
+Epoch 033 |  Time(s) 0.4527 | MultiGprompt Loss 1.9229  
+Epoch 034 |  Time(s) 0.4537 | MultiGprompt Loss 1.9230  
+Epoch 035 |  Time(s) 0.4481 | MultiGprompt Loss 1.9230  
+Epoch 036 |  Time(s) 0.4575 | MultiGprompt Loss 1.9230  
+Epoch 037 |  Time(s) 0.4481 | MultiGprompt Loss 1.9230  
+Epoch 038 |  Time(s) 0.4467 | MultiGprompt Loss 1.9229  
+Epoch 039 |  Time(s) 0.4647 | MultiGprompt Loss 1.9229  
+Epoch 040 |  Time(s) 0.4453 | MultiGprompt Loss 1.9229  
+Epoch 041 |  Time(s) 0.4576 | MultiGprompt Loss 1.9229  
+Epoch 042 |  Time(s) 0.4436 | MultiGprompt Loss 1.9229  
+----------------------------------------------------------------------------------------------------
+Early stopping at 43 eopch!
+Final True Accuracy: 0.1909 | Macro F1 Score: 0.1456
+best_loss [1.9228515625]
+{1: {1: 0.19089236855506897}}
+{1: {1: 0.19089236855506897}}
+########################################################################################
+seed: 1 | split 1 : 0.19089236855506897
+# Seed 1 Muti Split Final Acc: 0.1909±0.0000
+########################################################################################
+There's only one result, it's recommended to try several seeds.
+split: 1 | seed 1 : 0.19089236855506897
+# Split 1 Muti Seed Acc without min value: 0.1909±0.0000
+########################################################################################

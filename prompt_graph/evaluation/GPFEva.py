@@ -31,8 +31,8 @@ def GPFEva(loader, gnn, prompt, answering, num_class, device):
             ma_f1 = macro_f1(pred, batch.y)
             # roc = auroc(out, batch.y)
             # prc = auprc(out, batch.y)
-            if len(loader) > 20:
-                print("Batch {}/{} Acc: {:.4f} | Macro-F1: {:.4f}".format(batch_id,len(loader), acc.item(), ma_f1.item()))
+        
+            print("Batch {}/{} Acc: {:.4f} | Macro-F1: {:.4f}".format(batch_id,len(loader), acc.item(), ma_f1.item()))
                 # print("Batch {}/{} Acc: {:.4f} | Macro-F1: {:.4f}| AUROC: {:.4f}| AUPRC: {:.4f}".format(batch_id,len(loader), acc.item(), ma_f1.item(),roc.item(), prc.item()))
 
             # print(acc)

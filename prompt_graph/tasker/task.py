@@ -9,7 +9,7 @@ from prompt_graph.utils import Gprompt_tuning_loss
 import numpy as np
 
 class BaseTask:
-    def __init__(self, pre_train_model_path=None, gnn_type='TransformerConv', hid_dim = 128, num_layer = 2, dataset_name='Cora', prompt_type='GPF', preprocess_method ='None',attack_downstream = False, attack_method = None, epochs=100, shot_num=10, run_split = 1, specified = False, device : int = 0):
+    def __init__(self, pre_train_model_path=None, gnn_type='TransformerConv', hid_dim = 128, num_layer = 2, dataset_name='Cora', prompt_type='GPF', preprocess_method ='None',attack_downstream = False, attack_method = None, epochs=100, shot_num=10, run_split = 1, specified = False, adaptive = False, adaptive_scenario='', adaptive_split= 0, adaptive_attack_model='', adaptive_ptb_rate= 0., device : int = 0):
         self.pre_train_model_path = pre_train_model_path
         self.device = torch.device('cuda:'+ str(device) if torch.cuda.is_available() else 'cpu')
         self.preprocess_method = preprocess_method
@@ -25,6 +25,13 @@ class BaseTask:
         self.attack_downstream = attack_downstream
         self.attack_method = attack_method
         self.specified     = specified
+        # adaptive use
+        self.adaptive              = adaptive
+        self.adaptive_scenario     = adaptive_scenario
+        self.adaptive_split        = adaptive_split
+        self.adaptive_attack_model = adaptive_attack_model
+        self.adaptive_ptb_rate     = adaptive_ptb_rate
+
         self.initialize_lossfn()
 
     def initialize_optimizer(self):
@@ -74,7 +81,7 @@ class BaseTask:
             self.pg_opi = optim.Adam(self.prompt.parameters(), lr=0.01, weight_decay=5e-4)
         elif self.prompt_type == 'MultiGprompt':
             if self.task_type == 'NodeTask':
-                self.optimizer = optim.Adam([*self.DownPrompt.parameters(),*self.feature_prompt.parameters()], lr=0.001)
+                self.optimizer = optim.Adam([*self.DownPrompt.parameters(),*self.feature_prompt.parameters()], lr=0.01)
             elif self.task_type == 'GraphTask':
                 self.optimizer = optim.Adam(self.DownPrompt.parameters(), lr=0.001)
 

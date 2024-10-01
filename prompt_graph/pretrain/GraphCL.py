@@ -20,8 +20,8 @@ class GraphCL(PreTrain):
                                                    torch.nn.ReLU(inplace=True),
                                                    torch.nn.Linear(self.hid_dim, self.hid_dim)).to(self.device)
     def load_graph_data(self):
-        if self.dataset_name in ['PubMed', 'CiteSeer', 'Cora','Computers', 'Photo', 'Reddit', 'WikiCS', 'Flickr']:
-            self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 200)
+        if self.dataset_name in ['PubMed', 'Citeseer', 'Cora','Cora_ml','Computers', 'Photo', 'Reddit', 'WikiCS', 'Flickr']:
+            self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 20)
             # self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, num_parts=200, split_method='Cluster')
         else:
             self.input_dim, _, _, _, _, self.graph_list= load4graph(self.dataset_name)

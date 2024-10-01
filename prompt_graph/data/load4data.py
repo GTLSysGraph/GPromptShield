@@ -16,8 +16,8 @@ from ogb.nodeproppred import PygNodePropPredDataset
 from torch_geometric.transforms import SVDFeatureReduction
 from torch_geometric.data import Data,Batch
 from ogb.graphproppred import PygGraphPropPredDataset
-
-from data_attack_fewshot_save_relabel_central_node.attackdata_specified import AttackDataset_specified
+from  easydict  import EasyDict
+from data_attack_fewshot.attackdata_specified import AttackDataset_specified
 from data_pyg.data_pyg import get_dataset
 import os.path as osp
 
@@ -102,14 +102,21 @@ def load4graph(dataset_name, shot_num= 10, num_parts=None):
 
 
 
-def load4node_attack_shot_index(data_dir_name, dataname, attack_method, shot_num, run_split):
-    assert dataname in ['Cora', 'CiteSeer', 'PubMed', 'ogbn-arxiv'], 'Currently, attacks are only supported for the specified datasets.'
-    atk_type   = attack_method.split('-')[0]
-    atk_ptb    = attack_method.split('-')[1]
-    path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
-    dataset    = get_dataset(path, 'Attack-' + dataname, atk_type, atk_ptb)
-    print()
-    print(f'Attack method : {atk_type} | Attack ptb : {atk_ptb} | Dataset: {dataname}')
+def load4node_attack_shot_index(data_dir_name, dataname, attack_method, shot_num, run_split, adaptive=None, adaptive_dict=None):
+    assert dataname in ['Cora', 'Citeseer', 'PubMed', 'ogbn-arxiv','Cora_ml'], 'Currently, attacks are only supported for the specified datasets.'
+    # 自适应攻击加在数据集
+    if adaptive:
+        path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_unit_test_data')
+        dataset    = get_dataset(path, 'Unit-' + dataname, adaptive_dict=adaptive_dict)
+        print(adaptive_dict)
+    else:
+        atk_type   = attack_method.split('-')[0]
+        atk_ptb    = attack_method.split('-')[1]
+        path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+        dataset    = get_dataset(path, 'Attack-' + dataname, atk_type, atk_ptb)
+        print(f'Attack method : {atk_type} | Attack ptb : {atk_ptb} | Dataset: {dataname}')
+
+    
     print('======================')
     print(f'Number of graphs: {len(dataset)}')
     print(f'Number of features: {dataset.num_features}')
@@ -142,8 +149,10 @@ def load4node_attack_shot_index(data_dir_name, dataname, attack_method, shot_num
     
     # 这个是随机的取shot方法，这里可以优化一下，因为不同的shot对结果的影响很大，尤其是数据集被攻击的情况下
     # index_path = './{}/{}/{}/index/shot_{}/{}'.format(data_dir_name,dataname, attack_method, str(shot_num), str(run_split))
-
-    index_path = './{}/{}/shot_{}/{}/index'.format(data_dir_name, dataname, str(shot_num), str(run_split))
+    if adaptive:
+        index_path = './{}/{}/{}/{}/{}/{}/shot_{}/{}/index'.format(data_dir_name, dataname, adaptive_dict.scenario, str(adaptive_dict.split), adaptive_dict.adaptive_attack_model, str(adaptive_dict.ptb_rate), str(shot_num), str(run_split))
+    else:
+        index_path = './{}/{}/shot_{}/{}/index'.format(data_dir_name, dataname, str(shot_num), str(run_split))
 
     if os.path.exists(index_path):
         train_indices  = torch.load(index_path + '/train_idx.pt').type(torch.long)
@@ -281,11 +290,16 @@ def load4node_attack_shot_index(data_dir_name, dataname, attack_method, shot_num
 
 
 def load4node_attack_specified_shot_index(data_dir_name, dataname, attack_method, shot_num= 10, run_split = 1):
-    assert dataname in ['Cora', 'CiteSeer', 'PubMed', 'ogbn-arxiv'], 'Currently, attacks are only supported for the specified datasets.'
+    assert dataname in ['Cora', 'Citeseer', 'PubMed', 'ogbn-arxiv'], 'Currently, attacks are only supported for the specified datasets.'
 
     atk_type   = attack_method.split('-')[0]
     atk_ptb    = attack_method.split('-')[1]
     index_path = './{}/{}/shot_{}/{}/index'.format(data_dir_name, dataname, str(shot_num), str(run_split))
+    ##### 看一下train indices 可删
+    # train_indices        = torch.load(index_path + '/train_idx.pt').type(torch.long)
+    # print(train_indices)
+    # quit()
+    #####
     # 首先判断在指定的shot和split下是否存在index
     # 如果存在index，就表示能够根据指定的划分加载攻击后的数据
     if os.path.exists(index_path):
@@ -403,7 +417,7 @@ def load4node_attack_specified_shot_index(data_dir_name, dataname, attack_method
 
 def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 1):
     print(dataname)
-    if dataname in ['PubMed', 'CiteSeer', 'Cora']:
+    if dataname in ['PubMed', 'Citeseer', 'Cora']:
         dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures()) 服了，找了一晚上问题发现在这里 不要加，要和pretrain统一，tmd 你大爷
 
         # use the largest connected component
@@ -723,16 +737,36 @@ def load4link_prediction_multi_graph(dataset_name, num_per_samples=1):
 
 def load4node_demo2(dataname):
     print(dataname)
-    if dataname in ['PubMed', 'CiteSeer', 'Cora']:
+    if dataname in ['PubMed', 'Citeseer', 'Cora','Cora_ml']:
+        ##################################################################################################
         # use raw datasets
         # print('Now use raw datasets for pretrain !')
         # dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures()) 
-        
-        # use the largest connected component
-        print('Now use LLC datasets for pretrain !')
-        path    = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
-        dataset = get_dataset(path, 'Attack-' + dataname, 'Meta_Self', 0.0) # 0.0的扰动率即代表最大联通分量 
-        # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
+        ##################################################################################################
+
+        ##################################################################################################
+        # # use the largest connected component
+        # print('Now use LLC datasets for pretrain !')
+        # path    = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+        # dataset = get_dataset(path, 'Attack-' + dataname, 'Meta_Self', 0.0) # 0.0的扰动率即代表最大联通分量 
+        # # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
+        ##################################################################################################
+
+        # use adaptive clean
+        print('Now use adaptive clean for pretrain !')
+        path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_unit_test_data')
+        adaptive_dict = EasyDict()
+        adaptive_dict['PARAM'] = {
+                    "scenario": 'poisoning', 
+                    "split":    0, 
+                    "adaptive_attack_model": 'gnn_guard', 
+                    "ptb_rate":  0.
+            }
+        dataset    = get_dataset(path, 'Unit-' + dataname, adaptive_dict= adaptive_dict['PARAM'])
+
+
+
+
 
         data = dataset[0]
         input_dim = dataset.num_features
@@ -805,7 +839,7 @@ def load4node_demo2(dataname):
 
 
 # used in pre_train.py
-def NodePretrain(dataname='CiteSeer', num_parts=200, preprocess_method = 'svd', split_method='Cluster'):
+def NodePretrain(dataname='Citeseer', num_parts=200, preprocess_method = 'None', split_method='Cluster'):
 
     data, input_dim, _ = load4node_demo2(dataname)
 

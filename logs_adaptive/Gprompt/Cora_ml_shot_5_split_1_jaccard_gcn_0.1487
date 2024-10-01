@@ -1,0 +1,163 @@
+load LLC or attacked shot data with default split
+{'scenario': 'poisoning', 'split': 0, 'adaptive_attack_model': 'jaccard_gcn', 'ptb_rate': 0.1487}
+======================
+Number of graphs: 1
+Number of features: 1433
+Number of classes: 7
+
+Data(x=[2485, 1433], edge_index=[2, 14103], y=[2485], train_mask=[2485], val_mask=[2485], test_mask=[2485])
+===========================================================================================================
+Number of nodes: 2485
+Number of edges: 14103
+Average node degree: 5.68
+Has isolated nodes: False
+Has self-loops: True
+Is undirected: True
+None
+tensor([1756,  307,   33, 1404,  188, 2052,  775,  774, 2081, 1717, 2068,  689,
+         254, 1280,  225,  870, 2131, 1445, 1204, 1459, 1394, 1120,  728, 1165,
+        1540, 2302, 1798,  937, 1929, 1764, 1142, 2143, 1830,  532,  803])
+tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4,
+        4, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6])
+len train nodes: 35
+len val   nodes: 245
+len test  nodes: 2205
+Successfully loaded pre-trained weights!
+use Graph Prompt
+prepare induce graph data is finished!
+run Gprompt
+Epoch 001 |  Time(s) 0.8221 | Gprompt Loss 64.5415  
+Epoch 002 |  Time(s) 0.0423 | Gprompt Loss 64.1635  
+Epoch 003 |  Time(s) 0.0377 | Gprompt Loss 63.7368  
+Epoch 004 |  Time(s) 0.0367 | Gprompt Loss 63.2541  
+Epoch 005 |  Time(s) 0.0359 | Gprompt Loss 62.7111  
+Epoch 006 |  Time(s) 0.0345 | Gprompt Loss 62.1039  
+Epoch 007 |  Time(s) 0.0340 | Gprompt Loss 61.4292  
+Epoch 008 |  Time(s) 0.0335 | Gprompt Loss 60.6865  
+Epoch 009 |  Time(s) 0.0333 | Gprompt Loss 59.8788  
+Epoch 010 |  Time(s) 0.0349 | Gprompt Loss 59.0110  
+Epoch 011 |  Time(s) 0.0350 | Gprompt Loss 58.0887  
+Epoch 012 |  Time(s) 0.0328 | Gprompt Loss 57.1173  
+Epoch 013 |  Time(s) 0.0335 | Gprompt Loss 56.1034  
+Epoch 014 |  Time(s) 0.0330 | Gprompt Loss 55.0575  
+Epoch 015 |  Time(s) 0.0346 | Gprompt Loss 53.9946  
+Epoch 016 |  Time(s) 0.0333 | Gprompt Loss 52.9300  
+Epoch 017 |  Time(s) 0.0324 | Gprompt Loss 51.8740  
+Epoch 018 |  Time(s) 0.0334 | Gprompt Loss 50.8358  
+Epoch 019 |  Time(s) 0.0374 | Gprompt Loss 49.8251  
+Epoch 020 |  Time(s) 0.0344 | Gprompt Loss 48.8497  
+Epoch 021 |  Time(s) 0.0350 | Gprompt Loss 47.9110  
+Epoch 022 |  Time(s) 0.0336 | Gprompt Loss 47.0067  
+Epoch 023 |  Time(s) 0.0343 | Gprompt Loss 46.1313  
+Epoch 024 |  Time(s) 0.0337 | Gprompt Loss 45.2772  
+Epoch 025 |  Time(s) 0.0336 | Gprompt Loss 44.4372  
+Epoch 026 |  Time(s) 0.0337 | Gprompt Loss 43.6095  
+Epoch 027 |  Time(s) 0.0337 | Gprompt Loss 42.7957  
+Epoch 028 |  Time(s) 0.0339 | Gprompt Loss 41.9961  
+Epoch 029 |  Time(s) 0.0337 | Gprompt Loss 41.2107  
+Epoch 030 |  Time(s) 0.0335 | Gprompt Loss 40.4445  
+Epoch 031 |  Time(s) 0.0331 | Gprompt Loss 39.7043  
+Epoch 032 |  Time(s) 0.0336 | Gprompt Loss 38.9911  
+Epoch 033 |  Time(s) 0.0334 | Gprompt Loss 38.3004  
+Epoch 034 |  Time(s) 0.0342 | Gprompt Loss 37.6243  
+Epoch 035 |  Time(s) 0.0334 | Gprompt Loss 36.9567  
+Epoch 036 |  Time(s) 0.0330 | Gprompt Loss 36.2970  
+Epoch 037 |  Time(s) 0.0331 | Gprompt Loss 35.6494  
+Epoch 038 |  Time(s) 0.0326 | Gprompt Loss 35.0202  
+Epoch 039 |  Time(s) 0.0327 | Gprompt Loss 34.4180  
+Epoch 040 |  Time(s) 0.0324 | Gprompt Loss 33.8515  
+Epoch 041 |  Time(s) 0.0351 | Gprompt Loss 33.3268  
+Epoch 042 |  Time(s) 0.0334 | Gprompt Loss 32.8470  
+Epoch 043 |  Time(s) 0.0329 | Gprompt Loss 32.4136  
+Epoch 044 |  Time(s) 0.0327 | Gprompt Loss 32.0261  
+Epoch 045 |  Time(s) 0.0327 | Gprompt Loss 31.6819  
+Epoch 046 |  Time(s) 0.0348 | Gprompt Loss 31.3762  
+Epoch 047 |  Time(s) 0.0328 | Gprompt Loss 31.1023  
+Epoch 048 |  Time(s) 0.0325 | Gprompt Loss 30.8536  
+Epoch 049 |  Time(s) 0.0344 | Gprompt Loss 30.6259  
+Epoch 050 |  Time(s) 0.0329 | Gprompt Loss 30.4171  
+Epoch 051 |  Time(s) 0.0330 | Gprompt Loss 30.2265  
+Epoch 052 |  Time(s) 0.0328 | Gprompt Loss 30.0535  
+Epoch 053 |  Time(s) 0.0329 | Gprompt Loss 29.8966  
+Epoch 054 |  Time(s) 0.0332 | Gprompt Loss 29.7540  
+Epoch 055 |  Time(s) 0.0328 | Gprompt Loss 29.6232  
+Epoch 056 |  Time(s) 0.0356 | Gprompt Loss 29.5015  
+Epoch 057 |  Time(s) 0.0327 | Gprompt Loss 29.3860  
+Epoch 058 |  Time(s) 0.0329 | Gprompt Loss 29.2749  
+Epoch 059 |  Time(s) 0.0328 | Gprompt Loss 29.1676  
+Epoch 060 |  Time(s) 0.0329 | Gprompt Loss 29.0642  
+Epoch 061 |  Time(s) 0.0328 | Gprompt Loss 28.9660  
+Epoch 062 |  Time(s) 0.0325 | Gprompt Loss 28.8738  
+Epoch 063 |  Time(s) 0.0325 | Gprompt Loss 28.7884  
+Epoch 064 |  Time(s) 0.0323 | Gprompt Loss 28.7100  
+Epoch 065 |  Time(s) 0.0334 | Gprompt Loss 28.6381  
+Epoch 066 |  Time(s) 0.0327 | Gprompt Loss 28.5719  
+Epoch 067 |  Time(s) 0.0325 | Gprompt Loss 28.5107  
+Epoch 068 |  Time(s) 0.0331 | Gprompt Loss 28.4537  
+Epoch 069 |  Time(s) 0.0332 | Gprompt Loss 28.3999  
+Epoch 070 |  Time(s) 0.0331 | Gprompt Loss 28.3486  
+Epoch 071 |  Time(s) 0.0335 | Gprompt Loss 28.2994  
+Epoch 072 |  Time(s) 0.0334 | Gprompt Loss 28.2521  
+Epoch 073 |  Time(s) 0.0336 | Gprompt Loss 28.2068  
+Epoch 074 |  Time(s) 0.0333 | Gprompt Loss 28.1639  
+Epoch 075 |  Time(s) 0.0338 | Gprompt Loss 28.1233  
+Epoch 076 |  Time(s) 0.0351 | Gprompt Loss 28.0851  
+Epoch 077 |  Time(s) 0.0341 | Gprompt Loss 28.0493  
+Epoch 078 |  Time(s) 0.0340 | Gprompt Loss 28.0156  
+Epoch 079 |  Time(s) 0.0330 | Gprompt Loss 27.9837  
+Epoch 080 |  Time(s) 0.0332 | Gprompt Loss 27.9535  
+Epoch 081 |  Time(s) 0.0345 | Gprompt Loss 27.9246  
+Epoch 082 |  Time(s) 0.0333 | Gprompt Loss 27.8970  
+Epoch 083 |  Time(s) 0.0330 | Gprompt Loss 27.8705  
+Epoch 084 |  Time(s) 0.0328 | Gprompt Loss 27.8451  
+Epoch 085 |  Time(s) 0.0324 | Gprompt Loss 27.8207  
+Epoch 086 |  Time(s) 0.0330 | Gprompt Loss 27.7977  
+Epoch 087 |  Time(s) 0.0325 | Gprompt Loss 27.7759  
+Epoch 088 |  Time(s) 0.0339 | Gprompt Loss 27.7554  
+Epoch 089 |  Time(s) 0.0331 | Gprompt Loss 27.7359  
+Epoch 090 |  Time(s) 0.0377 | Gprompt Loss 27.7174  
+Epoch 091 |  Time(s) 0.0345 | Gprompt Loss 27.6997  
+Epoch 092 |  Time(s) 0.0345 | Gprompt Loss 27.6827  
+Epoch 093 |  Time(s) 0.0347 | Gprompt Loss 27.6664  
+Epoch 094 |  Time(s) 0.0362 | Gprompt Loss 27.6509  
+Epoch 095 |  Time(s) 0.0353 | Gprompt Loss 27.6361  
+Epoch 096 |  Time(s) 0.0352 | Gprompt Loss 27.6221  
+Epoch 097 |  Time(s) 0.0358 | Gprompt Loss 27.6088  
+Epoch 098 |  Time(s) 0.0354 | Gprompt Loss 27.5962  
+Epoch 099 |  Time(s) 0.0344 | Gprompt Loss 27.5842  
+Epoch 100 |  Time(s) 0.0358 | Gprompt Loss 27.5729  
+Batch 0/23 Acc: 0.3500 | Macro-F1: 0.3626
+Batch 1/23 Acc: 0.3300 | Macro-F1: 0.2983
+Batch 2/23 Acc: 0.4000 | Macro-F1: 0.3890
+Batch 3/23 Acc: 0.4600 | Macro-F1: 0.4211
+Batch 4/23 Acc: 0.3500 | Macro-F1: 0.3524
+Batch 5/23 Acc: 0.4900 | Macro-F1: 0.3753
+Batch 6/23 Acc: 0.3400 | Macro-F1: 0.3022
+Batch 7/23 Acc: 0.4900 | Macro-F1: 0.5011
+Batch 8/23 Acc: 0.4200 | Macro-F1: 0.4118
+Batch 9/23 Acc: 0.3700 | Macro-F1: 0.3856
+Batch 10/23 Acc: 0.4000 | Macro-F1: 0.3833
+Batch 11/23 Acc: 0.4000 | Macro-F1: 0.3389
+Batch 12/23 Acc: 0.5100 | Macro-F1: 0.5207
+Batch 13/23 Acc: 0.3200 | Macro-F1: 0.3089
+Batch 14/23 Acc: 0.3600 | Macro-F1: 0.3436
+Batch 15/23 Acc: 0.4600 | Macro-F1: 0.4413
+Batch 16/23 Acc: 0.4500 | Macro-F1: 0.4157
+Batch 17/23 Acc: 0.4500 | Macro-F1: 0.3457
+Batch 18/23 Acc: 0.5700 | Macro-F1: 0.4462
+Batch 19/23 Acc: 0.4200 | Macro-F1: 0.3860
+Batch 20/23 Acc: 0.4500 | Macro-F1: 0.4115
+Batch 21/23 Acc: 0.4200 | Macro-F1: 0.4137
+Batch 22/23 Acc: 0.6000 | Macro-F1: 0.2500
+Final True Accuracy: 0.4190 | Macro F1 Score: 0.4098
+best_loss [27.57288360595703]
+{1: {1: 0.41904762387275696}}
+{1: {1: 0.41904762387275696}}
+########################################################################################
+seed: 1 | split 1 : 0.41904762387275696
+# Seed 1 Muti Split Final Acc: 0.4190±0.0000
+########################################################################################
+There's only one result, it's recommended to try several seeds.
+split: 1 | seed 1 : 0.41904762387275696
+# Split 1 Muti Seed Acc without min value: 0.4190±0.0000
+########################################################################################

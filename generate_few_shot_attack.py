@@ -12,6 +12,7 @@ import scipy
 import os
 import os.path as osp
 from data_attack_fewshot.attackdata_specified import AttackDataset_specified
+from data_pyg.data_pyg import get_dataset
 
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
 
@@ -23,7 +24,7 @@ parser.add_argument('--lr',             type=float,                 default=0.01
 parser.add_argument('--weight_decay',   type=float,                 default=5e-4,                                                                           help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden',         type=int,                   default=16,                                                                             help='Number of hidden units.')
 parser.add_argument('--dropout',        type=float,                 default=0.5,                                                                            help='Dropout rate (1 - keep probability).')
-parser.add_argument('--dataset',        type=str,                   default='Cora',  choices=['Cora', 'CiteSeer', 'PubMed',],      help='dataset')
+parser.add_argument('--dataset',        type=str,                   default='Cora',  choices=['Cora', 'Citeseer', 'PubMed',],      help='dataset')
 parser.add_argument('--ptb_rate',       type=float,                 default= 0.0,           help='pertubation rate')
 parser.add_argument('--model',          type=str,                   default='Meta_Self', choices=['Meta_Self', 'A_Meta_Self', 'Meta_Train', 'A_Meta_Train'], help='model variant')
 # add by ssh
@@ -44,8 +45,13 @@ if device != 'cpu':
 ########################################################################################################
 ########################################################################################################
 # 加载few shot的clean data 并根据在prompt中生成的索引构建train/val/test的mask
-path_default = osp.expanduser('/home/songsh/MyPrompt/data_attack_fewshot/{}/default/'.format(args.dataset))
-dataset      = AttackDataset_specified(root = path_default, name = 'Attack-' + args.dataset,  attackmethod = "Meta_Self", ptb_rate=0.0) # , transform=T.NormalizeFeatures()
+# path_default = osp.expanduser('/home/songsh/MyPrompt/data_attack_fewshot/{}/default/'.format(args.dataset))
+# dataset      = AttackDataset_specified(root = path_default, name = 'Attack-' + args.dataset,  attackmethod = "Meta_Self", ptb_rate=0.0) # , transform=T.NormalizeFeatures()
+
+path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+dataset    = get_dataset(path, 'Attack-' + args.dataset, "Meta_Self", 0.0)
+
+
 data = dataset[0]  # Get the first graph object.
 
 index_path = './data_attack_fewshot/{}/shot_{}/{}/index'.format(args.dataset, str(args.shot_num), str(args.run_split))

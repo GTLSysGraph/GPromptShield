@@ -117,7 +117,7 @@ class NodePrePrompt(nn.Module):
         patience = 20
         lr = 0.0001
         l2_coef = 0.0
-        hid_units = 256
+        # hid_units = 256
         sparse = True
 
         features = torch.FloatTensor(self.features[np.newaxis])
@@ -236,8 +236,37 @@ class NodePrePrompt(nn.Module):
         #     os.makedirs(folder_path)
 
         torch.save(self.state_dict(),
-                    "./pre_trained_model/{}.{}.epoch_{}.pth".format(self.dataset_name, 'MultiGprompt', nb_epochs))
-        print("+++model saved ! {}.{}.epoch_{}.pth".format(self.dataset_name, 'MultiGprompt', nb_epochs))
+                    "./pre_trained_model/{}.{}.{}hidden_dim.epoch_{}.pth".format(self.dataset_name, 'MultiGprompt', self.hid_dim, nb_epochs))
+        print("+++model saved ! {}.{}.{}hidden_dim.epoch_{}.pth".format(self.dataset_name, 'MultiGprompt', self.hid_dim, nb_epochs))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -251,7 +280,6 @@ class GraphPrePrompt(nn.Module):
         print(dataset_name)
         # add here
         n_in, n_out, graph = load4graph(dataset_name)
-
         self.graph_list = graph
         self.loader = self.get_loader()
         self.dataset_name = dataset_name
