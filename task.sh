@@ -37,6 +37,6 @@ python MyTask.py \
 
 
 # > "./logs/GPF-plus/Citeseer_shot_5_split_1_Meta_Self_0.0"
-# 注意！ 因为在Mytask.py中的开始有seed_everything(seed)！所以在seed一样的情况下，不管什么run_split都是一样的！在第一次生成run_split的时候要同时改变seed！ 让run_split和seed一起改变，生成之后就直接读取了，就不用管seed了
+# attention! seed change when generate split
 
 
