@@ -14,22 +14,22 @@ python MyPretrain.py \
 #########################################
 # GraphCL hid_dim
 # Cora 256 
-# Citeseer 64 比较好 用32 256不起作用 GraphCL训小图不要用那么多划分num_parts
+# Citeseer 64          GraphCL num_parts=5
 # coraml 64
 
 # 'Edgepred_Gprompt' hid_dim
 # Cora 256 
-# Citeseer 64 比较好
+# Citeseer 64 
 
 
 # NodeMultiGprompt hid_dim
 # Cora 256 
-# Citeseer 128 比较好
+# Citeseer 128 
 #########################################
 
 
 
 #########################################
 # GraphMAE
-# Citeseer 256很不错
+# Citeseer 256
 # CoraML  64
