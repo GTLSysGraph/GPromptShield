@@ -11,7 +11,7 @@ def get_args():
                         help='Choose the prompt type for node or graph task, for node task,we support \GPPT\, \All-in-one\, \Gprompt\ for graph task , \All-in-one\, \Gprompt\, \GPF\, \GPF-plus\ ')
     parser.add_argument('--hid_dim', type=int, default=128,
                         help='hideen layer of GNN dimensions (default: 300)')
-    parser.add_argument('--batch_size', type=int, default=32,
+    parser.add_argument('--batch_size', type=int, default=128,
                         help='Input batch size for training (default: 32)')
     parser.add_argument('--epochs', type=int, default=50,
                         help='Number of epochs to train (default: 50)')

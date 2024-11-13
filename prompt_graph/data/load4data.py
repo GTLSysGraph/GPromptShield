@@ -21,6 +21,52 @@ from data_attack_fewshot.attackdata_specified import AttackDataset_specified
 from data_pyg.data_pyg import get_dataset
 import os.path as osp
 
+
+def graph_sample_and_save(dataset, k, folder, num_classes):
+
+    # 计算测试集的数量（例如80%的图作为测试集）
+    num_graphs = len(dataset)
+    num_test = int(0.8 * num_graphs)
+
+    labels = torch.tensor([graph.y.item() for graph in dataset])
+
+    # 随机选择测试集的图索引
+    all_indices = torch.randperm(num_graphs)
+    test_indices = all_indices[:num_test]
+    torch.save(test_indices, os.path.join(folder, 'test_idx.pt'))
+    test_labels = labels[test_indices]
+    torch.save(test_labels, os.path.join(folder, 'test_labels.pt'))
+
+    remaining_indices = all_indices[num_test:]
+
+    # 从剩下的10%的图中为训练集选择每个类别的k个样本
+    train_indices = []
+    for i in range(num_classes):
+        # 选出该类别的所有图
+        class_indices = [idx for idx in remaining_indices if labels[idx].item() == i]
+        # 如果选出的图少于k个，就取所有该类的图
+        selected_indices = class_indices[:k] 
+        train_indices.extend(selected_indices)
+
+    # 随机打乱训练集的图索引
+    train_indices = torch.tensor(train_indices)
+    shuffled_indices = torch.randperm(train_indices.size(0))
+    train_indices = train_indices[shuffled_indices]
+    print('idx_train: ',train_indices)
+    torch.save(train_indices, os.path.join(folder, 'train_idx.pt'))
+    train_labels = labels[train_indices]
+    print("train_labels: ", train_labels)
+    torch.save(train_labels, os.path.join(folder, 'train_labels.pt'))
+
+
+
+
+
+
+
+
+
+
 # used in pre_train.py
 def load_data4pretrain(dataname='CiteSeer', num_parts=200):
     data = pk.load(open('./Dataset/{}/feature_reduced.data'.format(dataname), 'br'))
@@ -38,7 +84,7 @@ def load_data4pretrain(dataname='CiteSeer', num_parts=200):
     return graph_list, input_dim, hid_dim
 
 
-def load4graph(dataset_name, shot_num= 10, num_parts=None):
+def load4graph(dataset_name, shot_num= 10, num_parts=None, pretrained=False):
     r"""A plain old python object modeling a batch of graphs as one big
         (dicconnected) graph. With :class:`torch_geometric.data.Data` being the
         base class, all its methods can also be used here.
@@ -47,37 +93,52 @@ def load4graph(dataset_name, shot_num= 10, num_parts=None):
         """
 
     if dataset_name in ['MUTAG', 'ENZYMES', 'COLLAB', 'PROTEINS', 'IMDB-BINARY', 'REDDIT-BINARY']:
-        dataset = TUDataset(root='data/TUDataset', name=dataset_name)
+        dataset = TUDataset(root='data/TUDataset', name=dataset_name, use_node_attr=True)
+        input_dim = dataset.num_features
+        out_dim = dataset.num_classes
         
-        torch.manual_seed(12345)
+        # torch.manual_seed(12345)
         dataset = dataset.shuffle()
         graph_list = [data for data in dataset]
 
-        # 分类并选择每个类别的图
-        class_datasets = {}
-        for data in dataset:
-            label = data.y.item()
-            if label not in class_datasets:
-                class_datasets[label] = []
-            class_datasets[label].append(data)
 
-        train_data = []
-        remaining_data = []
-        for label, data_list in class_datasets.items():
-            train_data.extend(data_list[:shot_num])
-            random.shuffle(train_data)
-            remaining_data.extend(data_list[shot_num:])
+        if dataset_name in ['COLLAB', 'IMDB-BINARY', 'REDDIT-BINARY']:
+            graph_list = [g for g in graph_list]
+            node_degree_as_features(graph_list)
+            input_dim = graph_list[0].x.size(1)        
 
-        # 将剩余的数据 1：9 划分为测试集和验证集
-        random.shuffle(remaining_data)
-        val_dataset_size = len(remaining_data) // 9
-        val_dataset = remaining_data[:val_dataset_size]
-        test_dataset = remaining_data[val_dataset_size:]
+        # # 分类并选择每个类别的图
+        # class_datasets = {}
+        # for data in dataset:
+        #     label = data.y.item()
+        #     if label not in class_datasets:
+        #         class_datasets[label] = []
+        #     class_datasets[label].append(data)
+
+        # train_data = []
+        # remaining_data = []
+        # for label, data_list in class_datasets.items():
+        #     train_data.extend(data_list[:shot_num])
+        #     random.shuffle(train_data)
+        #     remaining_data.extend(data_list[shot_num:])
+
+        # # 将剩余的数据 1：9 划分为测试集和验证集
+        # random.shuffle(remaining_data)
+        # val_dataset_size = len(remaining_data) // 9
+        # val_dataset = remaining_data[:val_dataset_size]
+        # test_dataset = remaining_data[val_dataset_size:]
         
-        input_dim = dataset.num_features
-        out_dim = dataset.num_classes
+        # input_dim = dataset.num_features
+        # out_dim = dataset.num_classes
 
-        return input_dim, out_dim, train_data, test_dataset, val_dataset, graph_list
+        # return input_dim, out_dim, train_data, test_dataset, val_dataset, graph_list
+            
+        if (pretrained==True):
+            return input_dim, out_dim, graph_list
+        else:
+            return input_dim, out_dim, dataset  # 统一下游任务返回参数的顺序
+
+
 
 
 
@@ -99,6 +160,8 @@ def load4graph(dataset_name, shot_num= 10, num_parts=None):
 
         return input_dim, out_dim, graph_list
         # return input_dim, out_dim, None, None, None, graph_list
+
+
 
 
 
@@ -418,7 +481,7 @@ def load4node_attack_specified_shot_index(data_dir_name, dataname, attack_method
 def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 1):
     print(dataname)
     if dataname in ['PubMed', 'Citeseer', 'Cora']:
-        dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures()) 服了，找了一晚上问题发现在这里 不要加，要和pretrain统一，tmd 你大爷
+        dataset = Planetoid(root='data/Planetoid', name=dataname, transform=NormalizeFeatures())#, transform=NormalizeFeatures()) 服了，找了一晚上问题发现在这里 不要加，要和pretrain统一，tmd 你大爷
 
         # use the largest connected component
         # print('Now use LLC datasets for pretrain !')
@@ -434,7 +497,18 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
         dataset = WikiCS(root='data/WikiCS')
     elif dataname == 'Flickr':
         dataset = Flickr(root='data/Flickr')
-    print()
+    elif dataname in ['Wisconsin', 'Texas']:
+        dataset = WebKB(root='data/'+dataname, name=dataname)
+        data = dataset[0]
+    elif dataname == 'Actor':
+        dataset = Actor(root='data/Actor')
+        data = dataset[0]
+    elif dataname == 'ogbn-arxiv':
+        dataset = PygNodePropPredDataset(name='ogbn-arxiv', root='./data')
+        data = dataset[0]
+    print(data)
+    quit()
+
     print(f'Dataset: {dataset}:')
     print('======================')
     print(f'Number of graphs: {len(dataset)}')
@@ -738,11 +812,13 @@ def load4link_prediction_multi_graph(dataset_name, num_per_samples=1):
 def load4node_demo2(dataname):
     print(dataname)
     if dataname in ['PubMed', 'Citeseer', 'Cora','Cora_ml']:
-        ##################################################################################################
+        #################################################################################################
         # use raw datasets
-        # print('Now use raw datasets for pretrain !')
-        # dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures()) 
-        ##################################################################################################
+        print('Now use raw datasets for pretrain !')
+        dataset = Planetoid(root='data/Planetoid', name=dataname, transform=NormalizeFeatures()) 
+        #################################################################################################
+
+
 
         # #################################################################################################
         # # use the largest connected component
@@ -752,19 +828,22 @@ def load4node_demo2(dataname):
         # # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
         # #################################################################################################
 
-        #################################################################################################
-        # use adaptive clean
-        print('Now use adaptive clean for pretrain !')
-        path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_unit_test_data')
-        adaptive_dict = EasyDict()
-        adaptive_dict['PARAM'] = {
-                    "scenario": 'poisoning', 
-                    "split":     0, 
-                    "adaptive_attack_model": 'gnn_guard', 
-                    "ptb_rate":  0.
-            }
-        dataset    = get_dataset(path, 'Unit-' + dataname, adaptive_dict= adaptive_dict['PARAM'])
-        #################################################################################################
+
+
+
+        # #################################################################################################
+        # # use adaptive clean
+        # print('Now use adaptive clean for pretrain !')
+        # path       = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_unit_test_data')
+        # adaptive_dict = EasyDict()
+        # adaptive_dict['PARAM'] = {
+        #             "scenario": 'poisoning', 
+        #             "split":     0, 
+        #             "adaptive_attack_model": 'gnn_guard', 
+        #             "ptb_rate":  0.
+        #     }
+        # dataset    = get_dataset(path, 'Unit-' + dataname, adaptive_dict= adaptive_dict['PARAM'])
+        # #################################################################################################
 
 
 

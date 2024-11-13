@@ -1,12 +1,12 @@
 python MyPretrain.py \
 --task 'GraphCL' \
---dataset_name 'Cora_ml' \
+--dataset_name 'MUTAG' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
---hid_dim 128 \
+--hid_dim 256 \
 --num_layer 2 \
 --epochs 200 \
---seed 787 \
+--seed 1 \
 --device 1
 
 # 'GraphCL'  'Edgepred_Gprompt' 'NodeMultiGprompt' 'GraphMAE'

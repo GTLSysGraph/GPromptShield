@@ -63,7 +63,6 @@ def GNNGraphEva(loader, gnn, answering, num_class, device):
 
 
 
-
 # def GNNNodeEva(data, mask,  gnn, answering):
 #     gnn.eval()
 #     out = gnn(data.x, data.edge_index, batch=None)

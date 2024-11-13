@@ -55,6 +55,59 @@ def induced_graphs(data, smallest_size=10, largest_size=30):
 
 
 
+
+
+def induced_graphs_from_edges(data, device, smallest_size=5, largest_size=20):
+    induced_graph_list = []
+
+    edge_index = data.edge_index
+
+    for edge_id in range(edge_index.size(1)):
+        src_node = edge_index[0, edge_id].item()
+        tgt_node = edge_index[1, edge_id].item()
+        current_label = 1  # Label is 1 if there's an edge between the nodes
+
+        current_hop = 1
+
+        subset, _, _, _ = k_hop_subgraph(node_idx=src_node, num_hops=current_hop,
+                                        edge_index=edge_index, relabel_nodes=True)
+        subset_tgt, _, _, _ = k_hop_subgraph(node_idx=tgt_node, num_hops=current_hop,
+                                            edge_index=edge_index, relabel_nodes=True)
+        subset = torch.unique(torch.cat([subset, subset_tgt]))
+
+        while len(subset) < smallest_size and current_hop < 5:
+            current_hop += 1
+            subset_src, _, _, _ = k_hop_subgraph(node_idx=src_node, num_hops=current_hop,
+                                                edge_index=edge_index)
+            subset_tgt, _, _, _ = k_hop_subgraph(node_idx=tgt_node, num_hops=current_hop,
+                                                edge_index=edge_index)
+            subset = torch.unique(torch.cat([subset_src, subset_tgt]))
+
+        if len(subset) < smallest_size:
+            need_node_num = smallest_size - len(subset)
+            candidate_nodes = torch.arange(data.x.size(0))
+            candidate_nodes = candidate_nodes[torch.randperm(candidate_nodes.shape[0])][0:need_node_num]
+            subset = torch.cat([torch.flatten(subset), candidate_nodes])
+
+        if len(subset) > largest_size:
+            subset = subset[torch.randperm(subset.shape[0])][0:largest_size]
+            subset = torch.unique(torch.cat([torch.LongTensor([src_node, tgt_node]).to(device), subset]))
+
+        sub_edge_index, _ = subgraph(subset, edge_index, relabel_nodes=True)
+        x = data.x[subset]
+
+        induced_graph = Data(x=x, edge_index=sub_edge_index, y=torch.tenor(current_label))
+        induced_graph_list.append(induced_graph)
+        # print(index)
+    return induced_graph_list
+
+
+
+
+
+
+
+
 def split_induced_graphs(name, data, file_path, smallest_size=10, largest_size=30):
     
     train_graphs = []

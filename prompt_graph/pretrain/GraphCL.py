@@ -21,10 +21,11 @@ class GraphCL(PreTrain):
                                                    torch.nn.Linear(self.hid_dim, self.hid_dim)).to(self.device)
     def load_graph_data(self):
         if self.dataset_name in ['PubMed', 'Citeseer', 'Cora', 'Cora_ml','Computers', 'Photo', 'Reddit', 'WikiCS', 'Flickr']:
-            self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 20)
+            self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 200)
             # self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, num_parts=200, split_method='Cluster')
         else:
-            self.input_dim, _, _, _, _, self.graph_list= load4graph(self.dataset_name)
+            self.input_dim, self.out_dim, self.graph_list= load4graph(self.dataset_name, pretrained=True)
+
     
     def get_loader(self, graph_list, batch_size,aug1=None, aug2=None, aug_ratio=None):
         if len(graph_list) % batch_size == 1:
@@ -100,7 +101,8 @@ class GraphCL(PreTrain):
     def pretrain(self, batch_size=10, aug1='dropN', aug2="permE", aug_ratio=None, lr=0.01, decay=0.0001):
         epochs = self.epochs
         self.to(self.device)
-
+        if self.dataset_name in ['COLLAB', 'IMDB-BINARY', 'REDDIT-BINARY', 'ogbg-ppa', 'DD']:
+            batch_size = 512
         loader1, loader2 = self.get_loader(self.graph_list, batch_size, aug1=aug1, aug2=aug2)
         print('start training {} | {} | {}...'.format(self.dataset_name, 'GraphCL', self.gnn_type))
 
@@ -126,6 +128,11 @@ class GraphCL(PreTrain):
                     break
             print(cnt_wait)
 
+        # torch.save(self.gnn.state_dict(),
+        #                    "./pre_trained_model_adaptive/{}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))
+        
         torch.save(self.gnn.state_dict(),
-                           "./pre_trained_model_adaptive/{}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))
+                           "./pre_trained_model_raw/{}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + '_hidden_dim'))
+
+
         print("+++model saved ! {}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))

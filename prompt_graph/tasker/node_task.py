@@ -33,7 +33,6 @@ class NodeTask(BaseTask):
                   # assert self.attack_method != 'None', 'No specific attacks were designated.'
                   self.load_shot_attack_data()
             else:
-                  print('load raw data')
                   self.load_data()
 
             self.initialize_gnn()
@@ -132,11 +131,7 @@ class NodeTask(BaseTask):
       def load_data(self):
             self.data, self.dataset = load4node_shot_index(self.dataset_name, preprocess_method = 
             self.preprocess_method, shot_num = self.shot_num, run_split= self.run_split)
-
-            # train_indices = self.data.train_mask.nonzero().squeeze()
-            # print(train_indices)
-            # print(self.data.y[train_indices])
-            # quit()
+   
 
             if self.prompt_type == 'MultiGprompt':
                   self.process_multigprompt_data(self.data)
@@ -171,7 +166,7 @@ class NodeTask(BaseTask):
                         self.val_dataset = graphs_dict['val_graphs']
             else:
                   self.data.to(self.device)
-
+            
 
                   
 
@@ -531,6 +526,9 @@ class NodeTask(BaseTask):
                   test_embs     = embeds[0, idx_test].type(torch.long)
 
 
+
+
+
             if self.prompt_type in ['RobustPrompt-GPF','RobustPrompt-GPFplus']: #,'GPF'，'All-in-one',
                   # 利用shot的标签训练一个pseudo label分类器
                   print("don't use structure")
@@ -565,7 +563,6 @@ class NodeTask(BaseTask):
 
 
 
-                        
 
             if self.prompt_type in []: 
                   from data_pyg.data_pyg import get_dataset
@@ -693,7 +690,7 @@ class NodeTask(BaseTask):
             if not math.isnan(loss):
                   batch_best_loss.append(loss)
                   if self.prompt_type == 'None':
-                        test_acc, F1   = GNNNodeEva(self.data, idx_test, self.gnn, self.answering,self.output_dim, self.device)          
+                        test_acc, F1   = GNNNodeEva(self.data, self.data.test_mask, self.gnn, self.answering,self.output_dim, self.device)          
                   elif self.prompt_type == 'All-in-one':
                         test_acc, F1   = AllInOneEva(test_loader, self.prompt, self.gnn, self.answering, self.output_dim, self.device)
                         # test_acc, F1   = AllInOneEva(test_loader, self.prompt, self.gnn, self.answering, self.output_dim, detectors,self.device)

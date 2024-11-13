@@ -9,8 +9,9 @@ from prompt_graph.utils import Gprompt_tuning_loss
 import numpy as np
 
 class BaseTask:
-    def __init__(self, pre_train_model_path=None, gnn_type='TransformerConv', hid_dim = 128, num_layer = 2, dataset_name='Cora', prompt_type='GPF', preprocess_method ='None',attack_downstream = False, attack_method = None, epochs=100, shot_num=10, run_split = 1, specified = False, adaptive = False, adaptive_scenario='', adaptive_split= 0, adaptive_attack_model='', adaptive_ptb_rate= 0., device : int = 0):
+    def __init__(self, pre_train_model_path=None, gnn_type='TransformerConv', hid_dim = 128, num_layer = 2, dataset_name='Cora', prompt_type='GPF', preprocess_method ='None',attack_downstream = False, attack_method = None, epochs=100, shot_num=10, run_split = 1, specified = False, adaptive = False, adaptive_scenario='', adaptive_split= 0, adaptive_attack_model='', adaptive_ptb_rate= 0., device : int = 0, lr =0.001, wd = 5e-4, batch_size = 16):
         self.pre_train_model_path = pre_train_model_path
+        self.pre_train_type = self.return_pre_train_type(pre_train_model_path)
         self.device = torch.device('cuda:'+ str(device) if torch.cuda.is_available() else 'cpu')
         self.preprocess_method = preprocess_method
         self.hid_dim = hid_dim
@@ -21,6 +22,7 @@ class BaseTask:
         self.gnn_type = gnn_type
         self.prompt_type = prompt_type
         self.epochs = epochs
+        self.batch_size = batch_size
         # add by ssh
         self.attack_downstream = attack_downstream
         self.attack_method = attack_method
@@ -33,6 +35,13 @@ class BaseTask:
         self.adaptive_ptb_rate     = adaptive_ptb_rate
 
         self.initialize_lossfn()
+
+
+    def initialize_lossfn(self):
+        self.criterion = torch.nn.CrossEntropyLoss()
+        if self.prompt_type == 'Gprompt':
+            self.criterion = Gprompt_tuning_loss()
+
 
     def initialize_optimizer(self):
         if self.prompt_type == 'None': 
@@ -47,7 +56,7 @@ class BaseTask:
         elif self.prompt_type in ['GPPT']:
             self.pg_opi = optim.Adam(self.prompt.parameters(), lr=2e-3, weight_decay=5e-4)
         elif self.prompt_type == 'All-in-one':
-            self.pg_opi = optim.Adam(filter(lambda p: p.requires_grad, self.prompt.parameters()), lr=0.001, weight_decay= 0.00001)
+            self.pg_opi = optim.Adam(filter(lambda p: p.requires_grad, self.prompt.parameters()), lr=1e-6, weight_decay= 0.00001)
             self.answer_opi = optim.Adam(filter(lambda p: p.requires_grad, self.answering.parameters()), lr=0.001, weight_decay= 0.00001)
         
         
@@ -88,28 +97,33 @@ class BaseTask:
 
 
 
-    def initialize_lossfn(self):
-        self.criterion = torch.nn.CrossEntropyLoss()
-        if self.prompt_type == 'Gprompt':
-            self.criterion = Gprompt_tuning_loss()
-
-            
-
 
     def initialize_prompt(self):
         if self.prompt_type == 'None':
             self.prompt = None
         elif self.prompt_type == 'GPPT':
-            print("use GPPT Prompt")
-            self.prompt = GPPTPrompt(self.hid_dim, self.output_dim, self.output_dim, device = self.device)
-            train_ids = torch.nonzero(self.data.train_mask, as_tuple=False).squeeze()
-            node_embedding = self.gnn(self.data.x, self.data.edge_index)
-            self.prompt.weigth_init(node_embedding,self.data.edge_index, self.data.y, train_ids)
+            # print("use GPPT Prompt")
+            # self.prompt = GPPTPrompt(self.hid_dim, self.output_dim, self.output_dim, device = self.device)
+            # train_ids = torch.nonzero(self.data.train_mask, as_tuple=False).squeeze()
+            # node_embedding = self.gnn(self.data.x, self.data.edge_index)
+            # self.prompt.weigth_init(node_embedding,self.data.edge_index, self.data.y, train_ids)
+            if(self.task_type=='NodeTask'):
+                if self.dataset_name == 'Texas':
+                    self.prompt = GPPTPrompt(self.hid_dim, 5, self.output_dim, device = self.device)
+                else:
+                    self.prompt = GPPTPrompt(self.hid_dim, self.output_dim, self.output_dim, device = self.device)
+            elif(self.task_type=='GraphTask'):
+                self.prompt = GPPTPrompt(self.hid_dim, self.output_dim, self.output_dim, device = self.device) 
+
+
         elif self.prompt_type =='All-in-one':
-            print("use All-in-one Prompt")
             # lr, wd = 0.001, 0.00001
             # self.prompt = LightPrompt(token_dim=self.input_dim, token_num_per_group=100, group_num=self.output_dim, inner_prune=0.01).to(self.device)
-            self.prompt = HeavyPrompt(token_dim=self.input_dim, token_num=10, cross_prune=0.1, inner_prune=0.3).to(self.device)
+            if(self.task_type=='NodeTask'):
+                self.prompt = HeavyPrompt(token_dim=self.input_dim, token_num=10, cross_prune=0.1, inner_prune=0.3).to(self.device)
+            elif(self.task_type=='GraphTask'):
+                self.prompt = HeavyPrompt(token_dim=self.input_dim, token_num=10, cross_prune=0.1, inner_prune=0.3).to(self.device)
+
 
         elif self.prompt_type in ['GPF','GPF-Tranductive']:
             self.prompt = GPF(self.input_dim).to(self.device)
@@ -118,7 +132,6 @@ class BaseTask:
             self.prompt = GPF_plus(self.input_dim, 20).to(self.device)
     
         elif self.prompt_type == 'Gprompt':
-            print("use Graph Prompt")
             self.prompt = Gprompt(self.hid_dim).to(self.device)
         elif self.prompt_type == 'MultiGprompt':
             # Node
@@ -210,3 +223,8 @@ class BaseTask:
  
             
       
+    def return_pre_train_type(self, pre_train_model_path):
+        names = ['None', 'DGI', 'GraphMAE','Edgepred_GPPT', 'Edgepred_Gprompt','GraphCL', 'SimGRACE']
+        for name in names:
+            if name  in  pre_train_model_path:
+                return name
