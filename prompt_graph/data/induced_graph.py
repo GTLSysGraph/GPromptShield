@@ -57,6 +57,7 @@ def induced_graphs(data, smallest_size=10, largest_size=30):
 
 
 
+
 def induced_graphs_from_edges(data, device, smallest_size=5, largest_size=20):
     induced_graph_list = []
 
@@ -69,10 +70,12 @@ def induced_graphs_from_edges(data, device, smallest_size=5, largest_size=20):
 
         current_hop = 1
 
+        # relabel的作用是重置边的索引，但是subset还是原来的索引
         subset, _, _, _ = k_hop_subgraph(node_idx=src_node, num_hops=current_hop,
                                         edge_index=edge_index, relabel_nodes=True)
         subset_tgt, _, _, _ = k_hop_subgraph(node_idx=tgt_node, num_hops=current_hop,
                                             edge_index=edge_index, relabel_nodes=True)
+
         subset = torch.unique(torch.cat([subset, subset_tgt]))
 
         while len(subset) < smallest_size and current_hop < 5:
@@ -91,16 +94,45 @@ def induced_graphs_from_edges(data, device, smallest_size=5, largest_size=20):
 
         if len(subset) > largest_size:
             subset = subset[torch.randperm(subset.shape[0])][0:largest_size]
-            subset = torch.unique(torch.cat([torch.LongTensor([src_node, tgt_node]).to(device), subset]))
+            subset = torch.unique(torch.cat([torch.LongTensor([src_node, tgt_node]), subset]))
 
         sub_edge_index, _ = subgraph(subset, edge_index, relabel_nodes=True)
         x = data.x[subset]
 
-        induced_graph = Data(x=x, edge_index=sub_edge_index, y=torch.tenor(current_label))
+        induced_graph = Data(x=x, edge_index=sub_edge_index, y=torch.tensor([current_label], dtype=torch.long))
         induced_graph_list.append(induced_graph)
-        # print(index)
-    return induced_graph_list
+        if edge_id % 1000 == 0:
+            print(edge_id)
+        if edge_id >1000:
+            break
+    
+    
+    # Add non-connected pairs
+    negative_sample_count = 0
+    max_negative_samples = 1000
 
+    for src_node in range(data.x.size(0)):
+        for tgt_node in range(src_node + 1, data.x.size(0)):
+            if not ((edge_index[0] == src_node) & (edge_index[1] == tgt_node)).any() and not ((edge_index[0] == tgt_node) & (edge_index[1] == src_node)).any():
+                current_label = 0  # Label is 0 if there's no edge between the nodes
+                subset = torch.LongTensor([src_node, tgt_node])
+                
+                sub_edge_index, _ = subgraph(subset, edge_index, relabel_nodes=True)
+                x = data.x[subset]
+
+                induced_graph = Data(x=x, edge_index=sub_edge_index, y=torch.tensor([current_label], dtype=torch.long))
+                induced_graph_list.append(induced_graph)
+
+                negative_sample_count += 1
+                if negative_sample_count%1000==0:
+                    print(negative_sample_count)
+
+                if negative_sample_count >= max_negative_samples:
+                    break
+        if negative_sample_count >= max_negative_samples:
+            break
+    
+    return induced_graph_list
 
 
 

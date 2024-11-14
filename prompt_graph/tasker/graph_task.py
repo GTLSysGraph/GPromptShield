@@ -7,15 +7,18 @@ import os
 import numpy as np
 import torch
 from prompt_graph.data import load4graph,graph_sample_and_save, node_degree_as_features
-from prompt_graph.evaluation import GpromptGraphEva, GNNGraphEva, GPFGraphEva, AllInOneGraphEva, GPPTGraphEva
-from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss, process, cmd, MLP, train_MLP, get_psu_labels, finetune_answering, get_detector
+from prompt_graph.evaluation import GpromptGraphEva, GNNGraphEva, GPFGraphEva, AllInOneGraphEva, GPPTGraphEva, RobustPromptInductiveGraphEva
+from prompt_graph.utils import constraint,  center_embedding, Gprompt_tuning_loss
 
 class GraphTask(BaseTask):
-    def __init__(self, task_num = 1 , *args, **kwargs):    
+    def __init__(self, task_type, input_dim, output_dim, dataset, task_num = 1 , *args, **kwargs):    
         super().__init__(*args, **kwargs)
-        self.task_type = 'GraphTask'
+        self.task_type = task_type
         self.task_num = task_num
-        self.input_dim, self.output_dim, self.dataset = load4graph(self.dataset_name)
+        # self.input_dim, self.output_dim, self.dataset = load4graph(self.dataset_name)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.dataset = dataset
         if self.shot_num > 0:
             self.create_few_data_folder()
         self.initialize_gnn()
@@ -28,7 +31,7 @@ class GraphTask(BaseTask):
     def create_few_data_folder(self):
             # 创建文件夹并保存数据
             k = self.shot_num
-            k_shot_folder = './data_graph_task/'+ self.dataset_name +'/' + str(k) +'_shot'
+            k_shot_folder = './data_' + self.task_type + '/'+ self.dataset_name + '/' + str(k) +'_shot'
             os.makedirs(k_shot_folder, exist_ok=True)
             for i in range(1, self.task_num + 1):
                 folder = os.path.join(k_shot_folder, str(i))
@@ -38,9 +41,9 @@ class GraphTask(BaseTask):
                     print(str(k) + ' shot ' + str(i) + ' th is saved!!')
                 else:
                     print(str(k) + ' shot ' + str(i) + ' th is existed!!')
-                    idx_train = torch.load("./data_graph_task/{}/{}_shot/{}/train_idx.pt".format(self.dataset_name, self.shot_num, str(i))).type(torch.long).to(self.device)
+                    idx_train = torch.load("./data_{}/{}/{}_shot/{}/train_idx.pt".format(self.task_type, self.dataset_name, self.shot_num, str(i))).type(torch.long).to(self.device)
                     print('idx_train: ',idx_train)
-                    train_lbls = torch.load("./data_graph_task/{}/{}_shot/{}/train_labels.pt".format(self.dataset_name, self.shot_num, str(i))).type(torch.long).squeeze().to(self.device)
+                    train_lbls = torch.load("./data_{}/{}/{}_shot/{}/train_labels.pt".format(self.task_type, self.dataset_name, self.shot_num, str(i))).type(torch.long).squeeze().to(self.device)
                     print("train_labels: ", train_lbls)
                     continue
 
@@ -151,7 +154,11 @@ class GraphTask(BaseTask):
         return temp_loss.item()
 
 
-
+    def RobustPromptInductiveTrainSynchro(self, train_loader):
+        self.prompt.train()
+        self.answering.train()
+        loss = self.prompt.Tune(train_loader, self.gnn, self.answering, self.criterion, self.optimizer, self.device)
+        return loss
 
 
     
@@ -163,10 +170,10 @@ class GraphTask(BaseTask):
         batch_best_loss = []
 
         for i in range(1, self.task_num + 1):
-            idx_train = torch.load("./data_graph_task/{}/{}_shot/{}/train_idx.pt".format(self.dataset_name, self.shot_num, str(i))).type(torch.long).to(self.device)
-            train_lbls = torch.load("./data_graph_task/{}/{}_shot/{}/train_labels.pt".format(self.dataset_name, self.shot_num, str(i))).type(torch.long).squeeze().to(self.device)
-            idx_test = torch.load("./data_graph_task/{}/{}_shot/{}/test_idx.pt".format(self.dataset_name, self.shot_num, i)).type(torch.long).to(self.device)
-            test_lbls = torch.load("./data_graph_task/{}/{}_shot/{}/test_labels.pt".format(self.dataset_name, self.shot_num, i)).type(torch.long).squeeze().to(self.device)
+            idx_train = torch.load("./data_{}/{}/{}_shot/{}/train_idx.pt".format(self.task_type, self.dataset_name, self.shot_num, str(i))).type(torch.long).to(self.device)
+            train_lbls = torch.load("./data_{}/{}/{}_shot/{}/train_labels.pt".format(self.task_type, self.dataset_name, self.shot_num, str(i))).type(torch.long).squeeze().to(self.device)
+            idx_test = torch.load("./data_{}/{}/{}_shot/{}/test_idx.pt".format(self.task_type, self.dataset_name, self.shot_num, i)).type(torch.long).to(self.device)
+            test_lbls = torch.load("./data_{}/{}/{}_shot/{}/test_labels.pt".format(self.task_type, self.dataset_name, self.shot_num, i)).type(torch.long).squeeze().to(self.device)
             
             train_dataset = self.dataset[idx_train]
             test_dataset = self.dataset[idx_test]
@@ -180,6 +187,16 @@ class GraphTask(BaseTask):
 
             train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
             test_loader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
+            print('#################################################')
+            print('graph num: ', len(self.dataset))
+            print('Batch Size: ', self.batch_size)
+            print('len train dataset: ', len(train_dataset))
+            print('len test dataset: ', len(test_dataset))
+            print('len train loader: ', len(train_loader))
+            print('len test loader: ', len(test_loader))
+            print('num labels: ', self.dataset.num_classes)
+            print('num shot: ', self.shot_num)
+            print('#################################################')
             print("prepare data is finished!")
 
 
@@ -257,7 +274,10 @@ class GraphTask(BaseTask):
                     loss, center = self.GpromptTrain(train_loader)
                 elif self.prompt_type =='GPPT':
                     loss = self.GPPTtrain(train_loader)
-                        
+                elif self.prompt_type == 'RobustPrompt-I':
+                    loss = self.RobustPromptInductiveTrainSynchro(train_loader)
+
+
                 if loss < best:
                     best = loss
                     # best_t = epoch
@@ -285,6 +305,11 @@ class GraphTask(BaseTask):
                 test_acc, f1, roc, prc = GPFGraphEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)
             elif self.prompt_type =='Gprompt':
                 test_acc, f1, roc, prc = GpromptGraphEva(test_loader, self.gnn, self.prompt, center, self.output_dim, self.device)
+            elif self.prompt_type == 'RobustPrompt-I':
+                test_acc, f1, roc, prc = RobustPromptInductiveGraphEva(test_loader, self.gnn, self.prompt, self.answering, self.output_dim, self.device)
+
+
+
 
             print(f"Final True Accuracy: {test_acc:.4f} | Macro F1 Score: {f1:.4f} | AUROC: {roc:.4f} | AUPRC: {prc:.4f}" )
             print("best_loss",  batch_best_loss)                        

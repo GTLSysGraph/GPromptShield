@@ -4,7 +4,8 @@ from prompt_graph.utils import seed_everything
 from torchsummary import summary
 from prompt_graph.utils import print_model_parameters
 from prompt_graph.utils import  get_args
-
+from prompt_graph.data import load4graph, load4link, induced_graphs_from_edges, CustomTUDataset
+import torch
 
 args = get_args()
 
@@ -84,22 +85,28 @@ if args.task == 'NodeTask':
 elif args.task == 'GraphTask':
     for seed in args.seed:
         seed_everything(seed)
+
+        input_dim, output_dim, dataset = load4graph(args.dataset_name)
         tasker = GraphTask(pre_train_model_path = args.pre_train_model_path, 
                         dataset_name = args.dataset_name, num_layer = args.num_layer, gnn_type = args.gnn_type, hid_dim = args.hid_dim, prompt_type = args.prompt_type, epochs = args.epochs,
                         shot_num = args.shot_num, device=args.device, lr = args.lr, wd = args.decay,
-                        batch_size = args.batch_size)
+                        batch_size = args.batch_size, dataset = dataset, input_dim = input_dim, output_dim = output_dim, task_type = 'GraphTask')
+        _, test_acc, std_test_acc, f1, std_f1, roc, std_roc, _, _= tasker.run()
+
+elif args.task == 'LinkTask': # 链接预测任务转换为图任务，只是induced graph不同
+    for seed in args.seed:
+        seed_everything(seed)
+        assert args.dataset_name in ['Cora', 'Citeseer', 'PubMed']
+        dataset = load4link(args.dataset_name)
+        data = dataset[0]
+        input_dim = dataset.num_features
+        out_dim = dataset.num_classes
+        dataset = induced_graphs_from_edges(data, args.device, smallest_size=1, largest_size=30)
+        dataset = CustomTUDataset(dataset)
         
-        test_acc = tasker.run()
-
-
-
-
-
-
-
-
-
-
-
-
-
+        tasker = GraphTask(pre_train_model_path = args.pre_train_model_path, 
+                    dataset_name = args.dataset_name, num_layer = args.num_layer, gnn_type = args.gnn_type, hid_dim = args.hid_dim, prompt_type = args.prompt_type, epochs = args.epochs,
+                    shot_num = args.shot_num, device=args.device, lr = args.lr, wd = args.decay,
+                    batch_size = 1024, dataset = dataset, input_dim = input_dim, output_dim = 2, task_type = 'LinkTask')
+        
+        _, test_acc, std_test_acc, f1, std_f1, roc, std_roc, _, _= tasker.run()

@@ -10,7 +10,7 @@ from torch_geometric.datasets import TUDataset
 from torch_geometric.transforms import NormalizeFeatures
 from torch_geometric.utils import to_undirected
 from torch_geometric.loader.cluster import ClusterData
-from torch_geometric.data import Data
+from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.utils import negative_sampling
 from ogb.nodeproppred import PygNodePropPredDataset
 from torch_geometric.transforms import SVDFeatureReduction
@@ -20,6 +20,28 @@ from  easydict  import EasyDict
 from data_attack_fewshot.attackdata_specified import AttackDataset_specified
 from data_pyg.data_pyg import get_dataset
 import os.path as osp
+
+
+# 自定义类，将 Data 列表转换为类似 TUDataset 的数据集
+class CustomTUDataset(InMemoryDataset):
+    def __init__(self, data_list, transform=None, pre_transform=None):
+        super().__init__('.', transform, pre_transform)
+        self.data, self.slices = self.collate(data_list)  # 打包 Data 对象为 InMemoryDataset 格式
+    
+    def __getitem__(self, idx):
+        # 如果 idx 是 torch.Tensor，则转换为列表处理
+        if isinstance(idx, torch.Tensor):
+            idx = idx.tolist()
+        # 如果 idx 是一个列表，则返回对应的多个 Data 对象
+        if isinstance(idx, (list, tuple)):
+            return [super(CustomTUDataset, self).get(i) for i in idx]
+        # 否则，返回单个 Data 对象
+        return super(CustomTUDataset, self).get(idx)
+    
+    def __len__(self):
+        return len(self.slices['x']) - 1  # 返回数据集中图的数量
+
+
 
 
 def graph_sample_and_save(dataset, k, folder, num_classes):
@@ -809,6 +831,27 @@ def load4link_prediction_multi_graph(dataset_name, num_per_samples=1):
 
 
 
+
+
+
+
+def load4link(dataname):
+    print(dataname)
+    if dataname in ['PubMed', 'Citeseer', 'Cora']:
+        dataset = Planetoid(root='data/Planetoid', name=dataname) #, transform=NormalizeFeatures()
+    elif dataname == 'Reddit':
+        dataset = Reddit(root='data/Reddit')
+    elif dataname == 'WikiCS':
+        dataset = WikiCS(root='data/WikiCS')
+    elif dataname == 'Flickr':
+        dataset = Flickr(root='data/Flickr')
+    return dataset
+
+
+
+
+
+
 def load4node_demo2(dataname):
     print(dataname)
     if dataname in ['PubMed', 'Citeseer', 'Cora','Cora_ml']:
@@ -818,8 +861,6 @@ def load4node_demo2(dataname):
         dataset = Planetoid(root='data/Planetoid', name=dataname, transform=NormalizeFeatures()) 
         #################################################################################################
 
-
-
         # #################################################################################################
         # # use the largest connected component
         # print('Now use LLC datasets for pretrain !')
@@ -827,9 +868,6 @@ def load4node_demo2(dataname):
         # dataset = get_dataset(path, 'Attack-' + dataname, 'Meta_Self', 0.0) # 0.0的扰动率即代表最大联通分量 
         # # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
         # #################################################################################################
-
-
-
 
         # #################################################################################################
         # # use adaptive clean
@@ -844,9 +882,6 @@ def load4node_demo2(dataname):
         #     }
         # dataset    = get_dataset(path, 'Unit-' + dataname, adaptive_dict= adaptive_dict['PARAM'])
         # #################################################################################################
-
-
-
 
         data = dataset[0]
         input_dim = dataset.num_features
@@ -920,9 +955,7 @@ def load4node_demo2(dataname):
 
 # used in pre_train.py
 def NodePretrain(dataname='Citeseer', num_parts=200, preprocess_method = 'None', split_method='Cluster'):
-
     data, input_dim, _ = load4node_demo2(dataname)
-
     # if dataname in ['PubMed', 'CiteSeer', 'Cora']:
     #     dataset = Planetoid(root='data/Planetoid', name=dataname)
     # elif dataname in ['Computers', 'Photo']:
@@ -934,7 +967,6 @@ def NodePretrain(dataname='Citeseer', num_parts=200, preprocess_method = 'None',
     # elif dataname == 'Flickr':
     #     dataset = Flickr(root='data/Flickr')
     # data = dataset[0]
-
 
     ####### feature svd
     if preprocess_method == 'svd':

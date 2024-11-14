@@ -1,18 +1,18 @@
-# 'MultiGprompt' 'GPF'  'GPF-plus' 'RobustPrompt-GPF', 'RobustPrompt-GPFplus', 'RobustPrompt-T', 'GPF-Tranductive', 'GPF-plus-Tranductive'  'All-in-one' 'GPPT' 'Gprompt'
+# 'MultiGprompt' 'GPF'  'GPF-plus' 'RobustPrompt-GPF', 'RobustPrompt-GPFplus', 'RobustPrompt-T', 'RobustPrompt-I','GPF-Tranductive', 'GPF-plus-Tranductive'  'All-in-one' 'GPPT' 'Gprompt'
 CUDA_VISIBLE_DEVICES=1
 python MyTask.py \
---pre_train_model_path './pre_trained_model_raw/MUTAG.GraphCL.GCN.256_hidden_dim.pth' \
---task GraphTask \
---dataset_name 'MUTAG' \
+--pre_train_model_path './pre_trained_model_raw/Cora.GraphCL.GCN.256_hidden_dim.pth' \
+--task LinkTask \
+--dataset_name 'Cora' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
---prompt_type 'GPF'   \
+--prompt_type 'RobustPrompt-I'   \
 --shot_num 5 \
 --run_split 1 \
 --hid_dim 256 \
 --num_layer 2 \
---epochs 1000 \
---seed 90 \
+--epochs 200 \
+--seed 12 \
 # --attack_downstream \
 # --attack_method 'Meta_Self-0.0' \
 

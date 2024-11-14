@@ -7,5 +7,5 @@ from .MultiGpromptEva import MultiGpromptEva
 from .GPFEva import GPFEva, GPFGraphEva
 from .GPFTranductiveEva import GPFTranductiveEva
 
-from .RobustPromptInductiveEva import RobustPromptInductiveEva
+from .RobustPromptInductiveEva import RobustPromptInductiveEva, RobustPromptInductiveGraphEva
 from .RobustPromptTranductiveEva import RobustPromptTranductiveEva

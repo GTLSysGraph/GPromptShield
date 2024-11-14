@@ -88,3 +88,47 @@ def RobustPromptInductiveEva(loader, gnn, prompt, answering, num_class, device):
         return acc.item(), ma_f1.item()
 
 
+
+
+
+
+
+def RobustPromptInductiveGraphEva(loader, gnn, prompt, answering, num_class, device):
+        prompt.eval()
+        answering.eval()
+        accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=num_class).to(device)
+        macro_f1 = torchmetrics.classification.F1Score(task="multiclass", num_classes=num_class, average="macro").to(device)
+        auroc = torchmetrics.classification.AUROC(task="multiclass", num_classes=num_class).to(device)
+        auprc = torchmetrics.classification.AveragePrecision(task="multiclass", num_classes=num_class).to(device)
+
+        accuracy.reset()
+        macro_f1.reset()
+        auroc.reset()
+        auprc.reset()
+
+        with torch.no_grad():
+            for batch_id, batch in enumerate(loader): 
+                batch = batch.to(device) 
+                ######################################################################################
+                # 前后都不处理，直接加提示 这里需要注意下，inductive的修剪图是加在Tune里面的
+                prompted_graph, _   = prompt(batch, device)
+                node_emb, graph_emb = gnn(prompted_graph.x, prompted_graph.edge_index, prompted_graph.batch,  prompt_type = 'RobustPrompt-I')
+                ######################################################################################
+                pre = answering(graph_emb)
+                pred = pre.argmax(dim=1)  
+
+                acc = accuracy(pred, batch.y)
+                ma_f1 = macro_f1(pred, batch.y)
+                roc = auroc(pre, batch.y)
+                prc = auprc(pre, batch.y)
+                if len(loader) > 20:
+                    print("Batch {}/{} Acc: {:.4f} | Macro-F1: {:.4f}| AUROC: {:.4f}| AUPRC: {:.4f}".format(batch_id,len(loader), acc.item(), ma_f1.item(),roc.item(), prc.item()))
+                    
+        acc = accuracy.compute()
+        ma_f1 = macro_f1.compute()
+        roc = auroc.compute()
+        prc = auprc.compute()
+
+        return acc.item(), ma_f1.item(), roc.item(), prc.item()
+
+
