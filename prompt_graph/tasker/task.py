@@ -107,12 +107,18 @@ class BaseTask:
             # train_ids = torch.nonzero(self.data.train_mask, as_tuple=False).squeeze()
             # node_embedding = self.gnn(self.data.x, self.data.edge_index)
             # self.prompt.weigth_init(node_embedding,self.data.edge_index, self.data.y, train_ids)
-            if(self.task_type=='NodeTask'):
+            if self.task_type=='NodeTask':
                 if self.dataset_name == 'Texas':
                     self.prompt = GPPTPrompt(self.hid_dim, 5, self.output_dim, device = self.device)
                 else:
                     self.prompt = GPPTPrompt(self.hid_dim, self.output_dim, self.output_dim, device = self.device)
-            elif(self.task_type=='GraphTask'):
+                    
+                train_ids = torch.nonzero(self.data.train_mask, as_tuple=False).squeeze()
+                node_embedding = self.gnn(self.data.x, self.data.edge_index)
+                self.prompt.weigth_init(node_embedding,self.data.edge_index, self.data.y, train_ids)
+
+
+            elif self.task_type=='GraphTask':
                 self.prompt = GPPTPrompt(self.hid_dim, self.output_dim, self.output_dim, device = self.device) 
 
 
@@ -162,7 +168,7 @@ class BaseTask:
         elif self.prompt_type == 'RobustPrompt-I': 
              # {'sim_pt': 0.4, 'degree_pt': 2, 'other_pt' : 'all'}
             self.prompt = RobustPrompt_I(self.input_dim,  
-                                              muti_defense_pt_dict={'sim_pt': 0.1, 'degree_pt': 2},  
+                                              muti_defense_pt_dict={'other_pt' : 'all'},  
                                               use_attention=True,  
                                               num_heads=1, 
                                               kl_global=False, 
@@ -174,15 +180,15 @@ class BaseTask:
                                               weight_constraint=0.).to(self.device)
         elif self.prompt_type == 'RobustPrompt-T':  
             self.prompt = RobustPrompt_T(self.input_dim,  
-                                            muti_defense_pt_dict={ 'sim_pt': 0.2, 'degree_pt': 2},  
+                                            muti_defense_pt_dict={'other_pt' : 'all'},  
                                             use_attention=False,  
                                             num_heads=1, 
                                             cosine_constraint=False,
-                                            pt_threshold=0.4, 
+                                            pt_threshold=0.0, 
                                             temperature=1.0,
-                                            weight_mse=0.2, 
-                                            weight_kl=0.8, 
-                                            weight_constraint=0.2).to(self.device)
+                                            weight_mse=0.0, 
+                                            weight_kl=0.0, 
+                                            weight_constraint=0.0).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPF':
             self.prompt = RobustPrompt_GPF(self.input_dim).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPFplus':

@@ -503,7 +503,8 @@ def load4node_attack_specified_shot_index(data_dir_name, dataname, attack_method
 def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 1):
     print(dataname)
     if dataname in ['PubMed', 'Citeseer', 'Cora']:
-        dataset = Planetoid(root='data/Planetoid', name=dataname, transform=NormalizeFeatures())#, transform=NormalizeFeatures()) 服了，找了一晚上问题发现在这里 不要加，要和pretrain统一，tmd 你大爷
+        dataset = Planetoid(root='data/Planetoid', name=dataname)#, transform=NormalizeFeatures()) 服了，找了一晚上问题发现在这里 不要加，要和pretrain统一，tmd 你大爷
+        data = dataset[0]
 
         # use the largest connected component
         # print('Now use LLC datasets for pretrain !')
@@ -528,8 +529,6 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
     elif dataname == 'ogbn-arxiv':
         dataset = PygNodePropPredDataset(name='ogbn-arxiv', root='./data')
         data = dataset[0]
-    print(data)
-    quit()
 
     print(f'Dataset: {dataset}:')
     print('======================')

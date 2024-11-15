@@ -2,17 +2,17 @@
 CUDA_VISIBLE_DEVICES=1
 python MyTask.py \
 --pre_train_model_path './pre_trained_model_raw/Cora.GraphCL.GCN.256_hidden_dim.pth' \
---task LinkTask \
+--task NodeTask \
 --dataset_name 'Cora' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
---prompt_type 'RobustPrompt-I'   \
+--prompt_type 'GPPT'   \
 --shot_num 5 \
 --run_split 1 \
 --hid_dim 256 \
 --num_layer 2 \
---epochs 200 \
---seed 12 \
+--epochs 5 \
+--seed 2 \
 # --attack_downstream \
 # --attack_method 'Meta_Self-0.0' \
 

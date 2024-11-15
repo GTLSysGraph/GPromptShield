@@ -140,7 +140,7 @@ class NodeTask(BaseTask):
                   self.output_dim = self.dataset.num_classes
 
 
-            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus']:
+            if self.prompt_type in ['All-in-one','Gprompt', 'GPF', 'GPF-plus','RobustPrompt-I']:
                   # file_dir = './data/{}/induced_graph/shot_{}/{}'.format(self.dataset_name, str(self.shot_num), str(self.run_split))
                   # file_path = os.path.join(file_dir, 'induced_graph.pkl')
 
