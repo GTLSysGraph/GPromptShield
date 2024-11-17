@@ -7,7 +7,7 @@ import numpy as np
 
 # Done! next step
 class RobustPrompt_I(torch.nn.Module):
-    def __init__(self, in_channels: int, muti_defense_pt_dict, use_attention, num_heads, kl_global, cosine_constraint, pt_threshold, temperature, weight_mse, weight_kl, weight_constraint):
+    def __init__(self, in_channels: int, muti_defense_pt_dict, p_plus, use_attention, num_heads, kl_global, cosine_constraint, pt_threshold, temperature, weight_mse, weight_kl, weight_constraint):
         super(RobustPrompt_I, self).__init__()
 
         self.in_channels       = in_channels
@@ -18,6 +18,7 @@ class RobustPrompt_I(torch.nn.Module):
         self.kl_global         = kl_global           # kl散度是全局还是局部
         self.cosine_constraint = cosine_constraint   # 是否用cosine计算prompt间距离
         self.pt_threshold      = pt_threshold        # 添加final prompt后的修剪超参数
+        self.p_plus            = p_plus
 
         # Tune过程中的不同loss权重和temperature
         self.temperature       = temperature
@@ -38,17 +39,34 @@ class RobustPrompt_I(torch.nn.Module):
         print('weight_constraint : ',self.weight_constraint)
 
 
-
+        # GPF版本
         if 'sim_pt' in self.pt_keys:
-            self.prompt_sim_pt              = torch.nn.Parameter(torch.Tensor(1, self.in_channels))
+            if self.p_plus:
+                self.sim_pt_list = torch.nn.Parameter(torch.Tensor(20, self.in_channels))
+                self.sim_pt_a = torch.nn.Linear(self.in_channels, 20)
+            else:
+                self.prompt_sim_pt  = torch.nn.Parameter(torch.Tensor(1, self.in_channels))
         if 'degree_pt' in self.pt_keys:
-            self.prompt_degree_pt           = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
+            if self.p_plus:
+                self.degree_pt_list = torch.nn.Parameter(torch.Tensor(20, self.in_channels))
+                self.degree_pt_a = torch.nn.Linear(self.in_channels, 20)
+            else:
+                self.prompt_degree_pt   = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
         if 'out_detect_pt' in self.pt_keys:
-            self.prompt_out_detect_pt       = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
+            if self.p_plus:
+                self.out_detect_pt_list = torch.nn.Parameter(torch.Tensor(20, self.in_channels))
+                self.out_detect_pt_a = torch.nn.Linear(self.in_channels, 20)
+            else:
+                self.prompt_out_detect_pt  = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
         if 'other_pt' in self.pt_keys:
-            self.prompt_other_pt            = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
+            if self.p_plus:
+                self.other_pt_list = torch.nn.Parameter(torch.Tensor(20, self.in_channels))
+                self.other_pt_a = torch.nn.Linear(self.in_channels, 20)
+            else:
+                self.prompt_other_pt   = torch.nn.Parameter(torch.Tensor(1, self.in_channels)) 
 
 
+    
         # attention  注意要用batch_first 因为nlp默认的是batch_first=False (L,N,Eq) L为目标序列长度，N为批量大小，Eq为查询嵌入维数embed_dim，batch_first=True时(N,L,Eq)
         # 目前head仅支持1，参数太多会过拟合
         assert num_heads == 1
@@ -57,15 +75,34 @@ class RobustPrompt_I(torch.nn.Module):
         self.reset_parameters()
 
 
+
+
+
     def reset_parameters(self):
         if 'sim_pt' in self.pt_keys:
-            glorot(self.prompt_sim_pt)
+            if self.p_plus:
+                glorot(self.sim_pt_list)
+                self.sim_pt_a.reset_parameters()
+            else:    
+                glorot(self.prompt_sim_pt)
         if 'degree_pt' in self.pt_keys:
-            glorot(self.prompt_degree_pt)
+            if self.p_plus:
+                glorot(self.degree_pt_list)
+                self.degree_pt_a.reset_parameters()
+            else:                
+                glorot(self.prompt_degree_pt)
         if 'out_detect_pt' in self.pt_keys:
-            glorot(self.prompt_out_detect_pt) 
+            if self.p_plus:
+                glorot(self.out_detect_pt_list)
+                self.out_detect_pt_a.reset_parameters()
+            else:                  
+                glorot(self.prompt_out_detect_pt) 
         if 'other_pt' in self.pt_keys:
-            glorot(self.prompt_other_pt)
+            if self.p_plus:
+                glorot(self.other_pt_list)
+                self.other_pt_a.reset_parameters()
+            else:              
+                glorot(self.prompt_other_pt)
         glorot(self.readout_token)
 
 
@@ -149,10 +186,20 @@ class RobustPrompt_I(torch.nn.Module):
                 node_use_sim_pt = torch.nonzero(csim <= self.pt_dict['sim_pt']).squeeze(-1) # 不能直接用squeeze()，会把所有1维度都压缩，当只有单个节点会有问题
   
 
+                #################################
+                if self.p_plus and len(node_use_sim_pt) > 0:
+                    score = self.sim_pt_a(x[node_use_sim_pt])
+                    sim_weight = F.softmax(score, dim=1)
+                    self.prompt_sim_pt = sim_weight.mm(self.sim_pt_list)
+                #################################
+
+
+
                 # 记录当前图中用到sim pt的node 局部的角度，为了后面筛选出一个图中没有用到任何defense pt的node
                 node_use_pt = torch.concat((node_use_pt, node_use_sim_pt))
                 # 将prompt放到当前图中用sim pt的指定节点上
-                g_mutiftpt_record[node_use_sim_pt, pt_range_dict['sim_pt'][0] : pt_range_dict['sim_pt'][1]] = self.prompt_sim_pt
+                if len(node_use_sim_pt) > 0:
+                    g_mutiftpt_record[node_use_sim_pt, pt_range_dict['sim_pt'][0] : pt_range_dict['sim_pt'][1]] = self.prompt_sim_pt
                 # 记录每个图用到sim pt的node   全局的角度  注意这里一定要放在对当前图处理完后面，要不会改变节点索引
                 node_use_sim_pt = node_use_sim_pt + whole_batch_start_index # 从当前图的start index进行记录  注意！不要用+=，会出现无法计算梯度问题
                 if self.kl_global:
@@ -166,10 +213,20 @@ class RobustPrompt_I(torch.nn.Module):
                 deg = degree(col, x.size(0), dtype=x.dtype)
                 node_use_degree_pt = torch.nonzero(deg <= self.pt_dict['degree_pt']).squeeze(-1) # 不能直接用squeeze()，会把所有1维度都压缩，当只有单个节点会有问题
 
+                #################################
+                if self.p_plus and len(node_use_degree_pt) > 0:
+                    score = self.degree_pt_a(x[node_use_degree_pt])
+                    # weight = torch.exp(score) / torch.sum(torch.exp(score), dim=1).view(-1, 1)
+                    degree_weight = F.softmax(score, dim=1)
+                    self.prompt_degree_pt = degree_weight.mm(self.degree_pt_list)
+                #################################
+                    
+
                 # 记录当前图中用到degree pt的node 局部的角度，为了后面筛选出一个图中没有用到任何defense pt的node
                 node_use_pt = torch.concat((node_use_pt, node_use_degree_pt))
                 # 将prompt放到当前图中用degree pt的指定节点上
-                g_mutiftpt_record[node_use_degree_pt, pt_range_dict['degree_pt'][0] : pt_range_dict['degree_pt'][1]] = self.prompt_degree_pt
+                if len(node_use_degree_pt) > 0:
+                    g_mutiftpt_record[node_use_degree_pt, pt_range_dict['degree_pt'][0] : pt_range_dict['degree_pt'][1]] = self.prompt_degree_pt
                 # 记录每个图用到degree pt的node 全局的角度  注意这里一定要放在对当前图处理完后面，要不会改变节点索引
                 node_use_degree_pt = node_use_degree_pt + whole_batch_start_index # 从当前图的start index进行记录  注意！不要用+=，会出现无法计算梯度问题
                 if self.kl_global:
@@ -196,11 +253,23 @@ class RobustPrompt_I(torch.nn.Module):
                         num_samples     = int(float(self.pt_dict['other_pt'].split('-')[1]) * node_use_no_pt.size(0))
                         random_indices  = torch.randint(0, node_use_no_pt.size(0), (num_samples,))
                         node_use_other_pt  = node_use_no_pt[random_indices]
+                    #################################
+                    if self.p_plus:
+                        score = self.other_pt_a(x[node_use_other_pt])
+                        other_weight = F.softmax(score, dim=1)
+                        self.prompt_other_pt = other_weight.mm(self.other_pt_list)
+                    #################################
+                    
                 else:
                     node_use_other_pt = torch.tensor([], dtype=node_use_no_pt.dtype).to(device)
+                    # self.prompt_other_pt = torch.zeros(1, self.in_channels).to(device)  
 
+
+
+
+                if len(node_use_other_pt) > 0:
                 # 将prompt放到当前图中没有用到任何defense pt的other节点上
-                g_mutiftpt_record[node_use_other_pt, pt_range_dict['other_pt'][0] : pt_range_dict['other_pt'][1]] = self.prompt_other_pt
+                    g_mutiftpt_record[node_use_other_pt, pt_range_dict['other_pt'][0] : pt_range_dict['other_pt'][1]] = self.prompt_other_pt
                 # 记录每个图没有用到任何defense pt但添加了other_pt的node 全局的角度 注意这里一定要放在对当前图处理完后面，要不会改变节点索引
                 node_use_other_pt = node_use_other_pt + whole_batch_start_index # 从当前图的start index进行记录  注意！不要用+=，会出现无法计算梯度问题
                 if self.kl_global:
@@ -236,6 +305,7 @@ class RobustPrompt_I(torch.nn.Module):
                 # g_mutiftpt_final_output = padding
                 # ************************************ 过滤器 ************************************ #
             else:    
+                # 这里需要优化一下，有的时候求平均可能会导致loss消失问题，可以用一个list单独存每个节点的索引
                 # 用求平均 如果只用'other_pt'就完全复刻GPF
                 padding = torch.zeros(self.in_channels).to(device)
                 # 找到每个节点prompt record中不为padding的行
@@ -369,22 +439,25 @@ class RobustPrompt_I(torch.nn.Module):
             # print("loss_pt : ", loss_pt)
             ######################################################################################
             # loss_constraint 针对不同的pt进行约束      提供两种方法 norm计算矩阵的二范数，矩阵中所有元素平方求和后开根号
-            muti_prompt, overlap_matrix = self.get_muti_prompt(node_use_each_pt_whole_batch, device)
-            # 这是一个用'sim_pt': 0.6, 'degree_pt': 3, 'other_pt' : 'all'利用cosine_constraint得到的overlap_matrix
-            #     tensor([[1.0000, 0.4804, 0.0000],                     
-            #             [0.4804, 1.0000, 0.0000],                     
-            #             [0.0000, 0.0000, 1.0000]], device='cuda:0')
-            # 可以看到other和其他的pt根据节点重合度都为0，但sim_pt和degree_pt有交集
-            if muti_prompt.shape[0] >= 2:
-                # 方法一： 用cos相似度
-                if self.cosine_constraint:
-                    dot_product = torch.matmul(muti_prompt, muti_prompt.T)
-                    norms = torch.norm(muti_prompt, dim=1)
-                    muti_prompt_matrix = dot_product / (norms[:, None] * norms[None, :])
-                    loss_constraint = torch.norm(muti_prompt_matrix - overlap_matrix)
-                # 方法二： 和GPPT一样使用dot
+            if not self.p_plus: # 如果p_plus的话是多维的，不能采用这样的方式优化prompt
+                muti_prompt, overlap_matrix = self.get_muti_prompt(node_use_each_pt_whole_batch, device)
+                # 这是一个用'sim_pt': 0.6, 'degree_pt': 3, 'other_pt' : 'all'利用cosine_constraint得到的overlap_matrix
+                #     tensor([[1.0000, 0.4804, 0.0000],                     
+                #             [0.4804, 1.0000, 0.0000],                     
+                #             [0.0000, 0.0000, 1.0000]], device='cuda:0')
+                # 可以看到other和其他的pt根据节点重合度都为0，但sim_pt和degree_pt有交集
+                if muti_prompt.shape[0] >= 2:
+                    # 方法一： 用cos相似度
+                    if self.cosine_constraint:
+                        dot_product = torch.matmul(muti_prompt, muti_prompt.T)
+                        norms = torch.norm(muti_prompt, dim=1)
+                        muti_prompt_matrix = dot_product / (norms[:, None] * norms[None, :])
+                        loss_constraint = torch.norm(muti_prompt_matrix - overlap_matrix)
+                    # 方法二： 和GPPT一样使用dot
+                    else:
+                        loss_constraint = torch.norm(torch.mm(muti_prompt, muti_prompt.T) - overlap_matrix)
                 else:
-                    loss_constraint = torch.norm(torch.mm(muti_prompt, muti_prompt.T) - overlap_matrix)
+                    loss_constraint = 0.
             else:
                 loss_constraint = 0.
             # print("loss_constraint : ", loss_constraint)

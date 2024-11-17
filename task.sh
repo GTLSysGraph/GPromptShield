@@ -1,18 +1,18 @@
 # 'MultiGprompt' 'GPF'  'GPF-plus' 'RobustPrompt-GPF', 'RobustPrompt-GPFplus', 'RobustPrompt-T', 'RobustPrompt-I','GPF-Tranductive', 'GPF-plus-Tranductive'  'All-in-one' 'GPPT' 'Gprompt'
 CUDA_VISIBLE_DEVICES=1
 python MyTask.py \
---pre_train_model_path './pre_trained_model_raw/Cora.GraphCL.GCN.256_hidden_dim.pth' \
---task NodeTask \
---dataset_name 'Cora' \
+--pre_train_model_path './pre_trained_model_raw/PubMed.GraphCL.GCN.256_hidden_dim.pth' \
+--task LinkTask \
+--dataset_name 'PubMed' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
---prompt_type 'GPPT'   \
---shot_num 5 \
+--prompt_type 'None'  \
+--shot_num 10 \
 --run_split 1 \
 --hid_dim 256 \
 --num_layer 2 \
---epochs 5 \
---seed 2 \
+--epochs 200 \
+--seed 5454 \
 # --attack_downstream \
 # --attack_method 'Meta_Self-0.0' \
 

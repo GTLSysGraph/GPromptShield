@@ -62,7 +62,7 @@ def induced_graphs_from_edges(data, device, smallest_size=5, largest_size=20):
     induced_graph_list = []
 
     edge_index = data.edge_index
-
+    print("positive edges")
     for edge_id in range(edge_index.size(1)):
         src_node = edge_index[0, edge_id].item()
         tgt_node = edge_index[1, edge_id].item()
@@ -102,14 +102,17 @@ def induced_graphs_from_edges(data, device, smallest_size=5, largest_size=20):
         induced_graph = Data(x=x, edge_index=sub_edge_index, y=torch.tensor([current_label], dtype=torch.long))
         induced_graph_list.append(induced_graph)
         if edge_id % 1000 == 0:
-            print(edge_id)
-        if edge_id >1000:
+            if edge_id == 0:
+                continue
+            else:
+                print(edge_id)
+        if edge_id > 5000:
             break
     
-    
+    print("negative edges")
     # Add non-connected pairs
     negative_sample_count = 0
-    max_negative_samples = 1000
+    max_negative_samples = 5000
 
     for src_node in range(data.x.size(0)):
         for tgt_node in range(src_node + 1, data.x.size(0)):
@@ -124,7 +127,7 @@ def induced_graphs_from_edges(data, device, smallest_size=5, largest_size=20):
                 induced_graph_list.append(induced_graph)
 
                 negative_sample_count += 1
-                if negative_sample_count%1000==0:
+                if negative_sample_count % 1000 == 0:
                     print(negative_sample_count)
 
                 if negative_sample_count >= max_negative_samples:

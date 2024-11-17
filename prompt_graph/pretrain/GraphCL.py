@@ -21,7 +21,7 @@ class GraphCL(PreTrain):
                                                    torch.nn.Linear(self.hid_dim, self.hid_dim)).to(self.device)
     def load_graph_data(self):
         if self.dataset_name in ['PubMed', 'Citeseer', 'Cora', 'Cora_ml','Computers', 'Photo', 'Reddit', 'WikiCS', 'Flickr']:
-            self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 200)
+            self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 100)
             # self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, num_parts=200, split_method='Cluster')
         else:
             self.input_dim, self.out_dim, self.graph_list= load4graph(self.dataset_name, pretrained=True)
@@ -135,4 +135,4 @@ class GraphCL(PreTrain):
                            "./pre_trained_model_raw/{}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + '_hidden_dim'))
 
 
-        print("+++model saved ! {}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + 'hidden_dim'))
+        print("+++model saved ! {}.{}.{}.{}.pth".format(self.dataset_name, 'GraphCL', self.gnn_type, str(self.hid_dim) + '_hidden_dim'))

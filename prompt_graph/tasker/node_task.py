@@ -117,6 +117,13 @@ class NodeTask(BaseTask):
                         os.makedirs(file_dir, exist_ok=True) 
                         # print('Begin split induced_graphs with specified shot {} and run split {} under {}.'.format(str(self.shot_num), str(self.run_split), self.attack_method))
                         # split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
+
+                        # smallest_size = 5  # 默认为5
+                        # if self.dataset_name in ['ENZYMES', 'PROTEINS']:
+                        #       smallest_size = 1
+                        # if self.dataset_name == 'PubMed':
+                        #       smallest_size = 8
+
                         split_induced_graphs_save_relabel_central_node_and_raw_index(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
                         with open(file_path, 'rb') as f:
                               graphs_dict = pickle.load(f)
@@ -158,7 +165,7 @@ class NodeTask(BaseTask):
                   else:
                         os.makedirs(file_dir, exist_ok=True) 
                         print('Begin split_induced_graphs.')
-                        split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=100, largest_size=300)
+                        split_induced_graphs(self.dataset_name, self.data, file_path, smallest_size=5, largest_size=300)
                         with open(file_path, 'rb') as f:
                               graphs_dict = pickle.load(f)
                         self.train_dataset = graphs_dict['train_graphs']
@@ -619,7 +626,7 @@ class NodeTask(BaseTask):
             if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt-I']:
                   train_loader = DataLoader(self.train_dataset, batch_size=100, shuffle=True)
                   test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
-                  val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
+                  val_loader = DataLoader(self.val_dataset, batch_size=512, shuffle=False)
                   print("prepare induce graph data is finished!")
 
 

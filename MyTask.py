@@ -102,6 +102,7 @@ elif args.task == 'LinkTask': # 链接预测任务转换为图任务，只是ind
         input_dim = dataset.num_features
         out_dim = dataset.num_classes
         dataset = induced_graphs_from_edges(data, args.device, smallest_size=1, largest_size=30)
+        print("num edge subgraphs: ", len(dataset))
         dataset = CustomTUDataset(dataset)
         
         tasker = GraphTask(pre_train_model_path = args.pre_train_model_path, 

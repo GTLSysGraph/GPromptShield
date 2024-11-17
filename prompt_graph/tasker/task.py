@@ -118,16 +118,16 @@ class BaseTask:
                 self.prompt.weigth_init(node_embedding,self.data.edge_index, self.data.y, train_ids)
 
 
-            elif self.task_type=='GraphTask':
+            elif self.task_type in ['GraphTask','LinkTask']:
                 self.prompt = GPPTPrompt(self.hid_dim, self.output_dim, self.output_dim, device = self.device) 
 
 
         elif self.prompt_type =='All-in-one':
             # lr, wd = 0.001, 0.00001
             # self.prompt = LightPrompt(token_dim=self.input_dim, token_num_per_group=100, group_num=self.output_dim, inner_prune=0.01).to(self.device)
-            if(self.task_type=='NodeTask'):
+            if self.task_type=='NodeTask':
                 self.prompt = HeavyPrompt(token_dim=self.input_dim, token_num=10, cross_prune=0.1, inner_prune=0.3).to(self.device)
-            elif(self.task_type=='GraphTask'):
+            elif self.task_type in ['GraphTask','LinkTask']:
                 self.prompt = HeavyPrompt(token_dim=self.input_dim, token_num=10, cross_prune=0.1, inner_prune=0.3).to(self.device)
 
 
@@ -168,16 +168,17 @@ class BaseTask:
         elif self.prompt_type == 'RobustPrompt-I': 
              # {'sim_pt': 0.4, 'degree_pt': 2, 'other_pt' : 'all'}
             self.prompt = RobustPrompt_I(self.input_dim,  
-                                              muti_defense_pt_dict={'other_pt' : 'all'},  
+                                              muti_defense_pt_dict={'sim_pt': 0.4, 'degree_pt': 2, 'other_pt' : 'all'},  
+                                              p_plus=True,
                                               use_attention=True,  
                                               num_heads=1, 
                                               kl_global=False, 
                                               cosine_constraint=True, 
-                                              pt_threshold=0.1, 
+                                              pt_threshold=0.0, 
                                               temperature=1.0,
-                                              weight_mse=0., 
-                                              weight_kl=0., 
-                                              weight_constraint=0.).to(self.device)
+                                              weight_mse=0.2, 
+                                              weight_kl=0.0, 
+                                              weight_constraint=0.0).to(self.device)
         elif self.prompt_type == 'RobustPrompt-T':  
             self.prompt = RobustPrompt_T(self.input_dim,  
                                             muti_defense_pt_dict={'other_pt' : 'all'},  

@@ -121,7 +121,7 @@ def RobustPromptInductiveGraphEva(loader, gnn, prompt, answering, num_class, dev
                 ma_f1 = macro_f1(pred, batch.y)
                 roc = auroc(pre, batch.y)
                 prc = auprc(pre, batch.y)
-                if len(loader) > 20:
+                if len(loader) > 2:
                     print("Batch {}/{} Acc: {:.4f} | Macro-F1: {:.4f}| AUROC: {:.4f}| AUPRC: {:.4f}".format(batch_id,len(loader), acc.item(), ma_f1.item(),roc.item(), prc.item()))
                     
         acc = accuracy.compute()

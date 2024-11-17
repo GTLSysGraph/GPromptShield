@@ -202,15 +202,12 @@ class GraphTask(BaseTask):
 
 
 
-
-
-
             if self.prompt_type == 'All-in-one':
                 # self.answer_epoch = 5 MUTAG Graph MAE / GraphCL
                 # self.prompt_epoch = 1
-                self.answer_epoch = 50
-                self.prompt_epoch = 50
-                self.epochs = int(self.epochs/self.answer_epoch)
+                self.answer_epoch = 20
+                self.prompt_epoch = 20
+                # self.epochs = int(self.epochs/self.answer_epoch)
 
 
             if self.prompt_type == 'GPPT':
@@ -235,7 +232,11 @@ class GraphTask(BaseTask):
                     self.prompt.weigth_init(node_embedding,processed_dataset.edge_index.to(self.device), node_for_graph_labels, train_node_ids)
                     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)            
                 else:
-                    train_node_ids = torch.arange(0,train_dataset.x.shape[0]).squeeze().to(self.device)
+                    if self.task_type == 'LinkTask' and self.dataset_name in ['Cora','Citeseer','PubMed']:
+                        total_num_nodes = sum([data.num_nodes for data in train_dataset])
+                        train_node_ids = torch.arange(0,total_num_nodes).squeeze().to(self.device)
+                    else:
+                        train_node_ids = torch.arange(0, train_dataset.x.shape[0]).squeeze().to(self.device)
                     # 将子图的节点id转换为全图的节点id
                     iterate_id_num = 0
                     for index, g in enumerate(train_dataset):
@@ -257,7 +258,6 @@ class GraphTask(BaseTask):
                     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 
-
             patience = 20
             best = 1e9
             cnt_wait = 0
@@ -267,7 +267,7 @@ class GraphTask(BaseTask):
                 if self.prompt_type == 'None':
                     loss = self.Train(train_loader)
                 elif self.prompt_type == 'All-in-one':
-                    loss = self.AllInOneTrain(train_loader,self.answer_epoch,self.prompt_epoch)
+                    loss = self.AllInOneTrain(train_loader, self.answer_epoch, self.prompt_epoch)
                 elif self.prompt_type in ['GPF', 'GPF-plus']:
                     loss = self.GPFTrain(train_loader)
                 elif self.prompt_type =='Gprompt':

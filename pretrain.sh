@@ -1,6 +1,6 @@
 python MyPretrain.py \
 --task 'GraphCL' \
---dataset_name 'MUTAG' \
+--dataset_name 'PubMed' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
 --hid_dim 256 \
