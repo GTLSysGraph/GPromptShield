@@ -108,7 +108,7 @@ def induced_graphs_from_edges(data, device, smallest_size=5, largest_size=20):
                 print(edge_id)
         if edge_id > 5000:
             break
-    
+    print('num positive edges: ',len(induced_graph_list))
     print("negative edges")
     # Add non-connected pairs
     negative_sample_count = 0
@@ -151,6 +151,9 @@ def split_induced_graphs(name, data, file_path, smallest_size=10, largest_size=3
 
 
     for index in range(data.x.size(0)):
+        if (not data.train_mask[index]) and (not data.val_mask[index]) and (not data.test_mask[index]):
+            continue
+        
         current_label = data.y[index].item()
 
         current_hop = 2

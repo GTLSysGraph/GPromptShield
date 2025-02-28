@@ -20,12 +20,11 @@ class GraphCL(PreTrain):
                                                    torch.nn.ReLU(inplace=True),
                                                    torch.nn.Linear(self.hid_dim, self.hid_dim)).to(self.device)
     def load_graph_data(self):
-        if self.dataset_name in ['PubMed', 'Citeseer', 'Cora', 'Cora_ml','Computers', 'Photo', 'Reddit', 'WikiCS', 'Flickr']:
-            self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 100)
+        if self.dataset_name in ['PubMed', 'Citeseer', 'Cora', 'Cora_ml','Computers', 'Photo', 'Reddit', 'WikiCS', 'Flickr', 'Wisconsin','ogbn-arxiv']:
+            self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, preprocess_method = self.preprocess_method, num_parts = 200)
             # self.graph_list, self.input_dim = NodePretrain(dataname = self.dataset_name, num_parts=200, split_method='Cluster')
         else:
             self.input_dim, self.out_dim, self.graph_list= load4graph(self.dataset_name, pretrained=True)
-
     
     def get_loader(self, graph_list, batch_size,aug1=None, aug2=None, aug_ratio=None):
         if len(graph_list) % batch_size == 1:
@@ -72,9 +71,13 @@ class GraphCL(PreTrain):
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2) / torch.einsum('i,j->ij', x1_abs, x2_abs)
         sim_matrix = torch.exp(sim_matrix / T)
         pos_sim = sim_matrix[range(batch_size), range(batch_size)]
+
+        loss = - torch.log(pos_sim / (sim_matrix.sum(dim=1) + 1e-4)).mean()
         # loss = - torch.log(pos_sim / (sim_matrix.sum(dim=1) + 1e-4)).mean() + 10 # 吐了，这么写是有问题的，分开！
-        loss = pos_sim / ((sim_matrix.sum(dim=1) - pos_sim) + 1e-4)
-        loss = - torch.log(loss).mean() + 10
+
+        # loss = pos_sim / ((sim_matrix.sum(dim=1) - pos_sim) + 1e-4)
+        # loss = - torch.log(loss).mean() + 10
+
         # loss = pos_sim / ((sim_matrix.sum(dim=1) - pos_sim) + 1e-4)
         # loss = - torch.log(loss).mean() 
         return loss
@@ -110,7 +113,7 @@ class GraphCL(PreTrain):
         optimizer = Adam(self.parameters(), lr=lr, weight_decay=decay)
 
         train_loss_min = 1000000
-        patience = 40
+        patience = 10
         cnt_wait = 0
         for epoch in range(1, epochs + 1):  # 1..100
             train_loss = self.train_graphcl(loader1, loader2, optimizer)

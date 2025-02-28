@@ -505,7 +505,6 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
     if dataname in ['PubMed', 'Citeseer', 'Cora']:
         dataset = Planetoid(root='data/Planetoid', name=dataname, transform=NormalizeFeatures())#, transform=NormalizeFeatures()) 服了，找了一晚上问题发现在这里 不要加，要和pretrain统一，tmd 你大爷
         data = dataset[0]
-
         # use the largest connected component
         # print('Now use LLC datasets for pretrain !')
         # path    = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
@@ -541,6 +540,12 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
         data = pk.load(open('./data/{}_feature_reduced.data'.format(dataname), 'br'))
     else:
         data = dataset[0]  # Get the first graph object.
+
+
+    if dataname == 'ogbn-arxiv':
+        data.y = data.y.squeeze()
+
+
 
     print()
     print(data)
@@ -596,7 +601,6 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
         # 注意！ seed一样的情况下，不管什么run_split都是一样的！要获得不同的run_split要同时改变seed！
         for label in data.y.unique():
                 label_indices = (data.y == label).nonzero(as_tuple=False).view(-1)
-
                 # if len(label_indices) < 3 * shot_num:
                 #     raise ValueError(f"类别 {label.item()} 的样本数不足以分配到训练集、测试集和验证集。")
 
@@ -604,7 +608,13 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
                 train_indices = label_indices[:shot_num]
                 train_mask[train_indices] = True
 
-                remaining_indices = label_indices[shot_num:]
+
+                if dataname == 'ogbn-arxiv': # 生成induced graph太慢，所以选择一部分
+                    remaining_indices = label_indices[shot_num: shot_num + 50]    
+                else:
+                    remaining_indices = label_indices[shot_num:]
+                
+
                 split_point = int(len(remaining_indices) * 0.1)  # 验证集占剩余的10%
                 
                 val_indices = remaining_indices[:split_point]
@@ -632,11 +642,6 @@ def load4node_shot_index(dataname, preprocess_method, shot_num= 10, run_split = 
         # shuffled_test_indices = torch.randperm(whole_test_idx.size(0))
         # whole_test_idx = whole_test_idx[shuffled_test_indices]
         whole_test_labels = labels[whole_test_idx]
-
-
-        # print(whole_train_idx)
-        # print(whole_train_labels)
-        # quit()
 
 
         # 保存文件
@@ -850,6 +855,10 @@ def load4link(dataname):
         dataset = WikiCS(root='data/WikiCS')
     elif dataname == 'Flickr':
         dataset = Flickr(root='data/Flickr')
+    elif dataname in ['Wisconsin', 'Texas']:
+        dataset = WebKB(root='data/'+ dataname, name=dataname)
+    elif dataname == 'ogbn-arxiv':
+        dataset = PygNodePropPredDataset(name='ogbn-arxiv', root='./data')
     return dataset
 
 
@@ -860,19 +869,19 @@ def load4link(dataname):
 def load4node_demo2(dataname):
     print(dataname)
     if dataname in ['PubMed', 'Citeseer', 'Cora','Cora_ml']:
-        #################################################################################################
-        # use raw datasets
-        print('Now use raw datasets for pretrain !')
-        dataset = Planetoid(root='data/Planetoid', name=dataname, transform=NormalizeFeatures()) # , transform=NormalizeFeatures()
-        #################################################################################################
+        # #################################################################################################
+        # # use raw datasets
+        # print('Now use raw datasets for pretrain !')
+        # dataset = Planetoid(root='data/Planetoid', name=dataname, transform=NormalizeFeatures()) # , transform=NormalizeFeatures()
+        # #################################################################################################
 
-        # #################################################################################################
-        # # use the largest connected component
-        # print('Now use LLC datasets for pretrain !')
-        # path    = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
-        # dataset = get_dataset(path, 'Attack-' + dataname, 'Meta_Self', 0.0) # 0.0的扰动率即代表最大联通分量 
-        # # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
-        # #################################################################################################
+        #################################################################################################
+        # use the largest connected component
+        print('Now use LLC datasets for pretrain !')
+        path    = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+        dataset = get_dataset(path, 'Attack-' + dataname, 'Meta_Self', 0.0) # 0.0的扰动率即代表最大联通分量 
+        # 注意，get_dataset里对特征进行normolize了，所以预训练有问题，已经取消
+        #################################################################################################
 
         # #################################################################################################
         # # use adaptive clean
@@ -949,7 +958,7 @@ def load4node_demo2(dataname):
         input_dim = dataset.num_features
         out_dim = dataset.num_classes
     elif dataname == 'ogbn-arxiv':
-        dataset = PygNodePropPredDataset(name='ogbn-arxiv', root='./dataset')
+        dataset = PygNodePropPredDataset(name='ogbn-arxiv', root='./data')
         data = dataset[0]
         input_dim = data.x.shape[1]
         out_dim = dataset.num_classes

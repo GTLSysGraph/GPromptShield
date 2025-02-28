@@ -210,6 +210,7 @@ class RobustPrompt_I(torch.nn.Module):
 
             if 'degree_pt' in self.pt_keys:
                 # print('degree_pt : ',self.pt_dict['degree_pt'])
+                row, col = edge_index
                 deg = degree(col, x.size(0), dtype=x.dtype)
                 node_use_degree_pt = torch.nonzero(deg <= self.pt_dict['degree_pt']).squeeze(-1) # 不能直接用squeeze()，会把所有1维度都压缩，当只有单个节点会有问题
 

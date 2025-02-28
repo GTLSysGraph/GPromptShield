@@ -1,12 +1,12 @@
 python MyPretrain.py \
 --task 'GraphCL' \
---dataset_name 'PubMed' \
+--dataset_name 'Cora_ml' \
 --preprocess_method 'none' \
 --gnn_type 'GCN' \
---hid_dim 256 \
+--hid_dim 64 \
 --num_layer 2 \
 --epochs 200 \
---seed 1 \
+--seed 56 \
 --device 1
 
 # 'GraphCL'  'Edgepred_Gprompt' 'NodeMultiGprompt' 'GraphMAE'

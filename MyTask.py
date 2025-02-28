@@ -96,9 +96,12 @@ elif args.task == 'GraphTask':
 elif args.task == 'LinkTask': # 链接预测任务转换为图任务，只是induced graph不同
     for seed in args.seed:
         seed_everything(seed)
-        assert args.dataset_name in ['Cora', 'Citeseer', 'PubMed']
+        assert args.dataset_name in ['Cora', 'Citeseer', 'PubMed','Wisconsin','ogbn-arxiv']
         dataset = load4link(args.dataset_name)
         data = dataset[0]
+        if args.dataset_name == 'ogbn-arxiv':
+            data.y = data.y.squeeze()
+
         input_dim = dataset.num_features
         out_dim = dataset.num_classes
         dataset = induced_graphs_from_edges(data, args.device, smallest_size=1, largest_size=30)

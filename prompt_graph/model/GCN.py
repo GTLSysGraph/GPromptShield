@@ -80,7 +80,6 @@ class GCN(torch.nn.Module):
         else:
             if prompt_type == 'Gprompt':
                 node_emb = prompt(node_emb)
-
             graph_emb = self.pool(node_emb, batch.long())
 
             if prompt_type in ['RobustPrompt-I']:

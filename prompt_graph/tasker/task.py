@@ -168,7 +168,7 @@ class BaseTask:
         elif self.prompt_type == 'RobustPrompt-I': 
              # {'sim_pt': 0.4, 'degree_pt': 2, 'other_pt' : 'all'}
             self.prompt = RobustPrompt_I(self.input_dim,  
-                                              muti_defense_pt_dict={'sim_pt': 0.4, 'degree_pt': 2, 'other_pt' : 'all'},  
+                                              muti_defense_pt_dict={'other_pt' : 'all'},  
                                               p_plus=True,
                                               use_attention=True,  
                                               num_heads=1, 
@@ -176,20 +176,21 @@ class BaseTask:
                                               cosine_constraint=True, 
                                               pt_threshold=0.0, 
                                               temperature=1.0,
-                                              weight_mse=0.2, 
-                                              weight_kl=0.0, 
-                                              weight_constraint=0.0).to(self.device)
+                                              weight_mse=0.1, 
+                                              weight_kl=0.3, 
+                                              weight_constraint=0.).to(self.device)
         elif self.prompt_type == 'RobustPrompt-T':  
             self.prompt = RobustPrompt_T(self.input_dim,  
                                             muti_defense_pt_dict={'other_pt' : 'all'},  
+                                            p_plus=True,
                                             use_attention=False,  
                                             num_heads=1, 
                                             cosine_constraint=False,
-                                            pt_threshold=0.0, 
+                                            pt_threshold=0.5, 
                                             temperature=1.0,
-                                            weight_mse=0.0, 
-                                            weight_kl=0.0, 
-                                            weight_constraint=0.0).to(self.device)
+                                            weight_mse=0.1, 
+                                            weight_kl=0., 
+                                            weight_constraint=0.2).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPF':
             self.prompt = RobustPrompt_GPF(self.input_dim).to(self.device)
         elif self.prompt_type == 'RobustPrompt-GPFplus':
@@ -202,28 +203,29 @@ class BaseTask:
 
     def initialize_gnn(self):
         if self.gnn_type == 'GAT':
-                self.gnn = GAT(input_dim=self.input_dim, out_dim=self.hid_dim, num_layer=self.num_layer)
+            self.gnn = GAT(input_dim=self.input_dim, hid_dim=self.hid_dim, num_layer=self.num_layer)
         elif self.gnn_type == 'GCN':
-                self.gnn = GCN(input_dim=self.input_dim, out_dim=self.hid_dim, num_layer=self.num_layer)
+            self.gnn = GCN(input_dim=self.input_dim, hid_dim=self.hid_dim, num_layer=self.num_layer)
         elif self.gnn_type == 'GraphSAGE':
-                self.gnn = GraphSAGE(input_dim=self.input_dim, out_dim=self.hid_dim, num_layer=self.num_layer)
+            self.gnn = GraphSAGE(input_dim=self.input_dim, hid_dim=self.hid_dim, num_layer=self.num_layer)
         elif self.gnn_type == 'GIN':
-                self.gnn = GIN(input_dim=self.input_dim, out_dim=self.hid_dim, num_layer=self.num_layer)
+            self.gnn = GIN(input_dim=self.input_dim, hid_dim=self.hid_dim, num_layer=self.num_layer)
         elif self.gnn_type == 'GCov':
-                self.gnn = GCov(input_dim=self.input_dim, out_dim=self.hid_dim, num_layer=self.num_layer)
+            self.gnn = GCov(input_dim=self.input_dim, hid_dim=self.hid_dim, num_layer=self.num_layer)
         elif self.gnn_type == 'GraphTransformer':
-                self.gnn = GraphTransformer(input_dim=self.input_dim, out_dim=self.hid_dim, num_layer=self.num_layer)
+            self.gnn = GraphTransformer(input_dim=self.input_dim, hid_dim=self.hid_dim, num_layer=self.num_layer)
         else:
-                raise ValueError(f"Unsupported GNN type: {self.gnn_type}")
+            raise ValueError(f"Unsupported GNN type: {self.gnn_type}")
         self.gnn.to(self.device)
-
+        print(self.gnn)
         if self.pre_train_model_path != 'None' and self.prompt_type != 'MultiGprompt':
             if self.gnn_type not in self.pre_train_model_path:
                 raise ValueError(f"the Downstream gnn '{self.gnn_type}' does not match the pre-train model")
             if self.dataset_name not in self.pre_train_model_path:
                 raise ValueError(f"the Downstream dataset '{self.dataset_name}' does not match the pre-train dataset")
 
-            self.gnn.load_state_dict(torch.load(self.pre_train_model_path, map_location=self.device))
+            self.gnn.load_state_dict(torch.load(self.pre_train_model_path, map_location='cpu'))
+            self.gnn.to(self.device)       
             print("Successfully loaded pre-trained weights!")
 
       

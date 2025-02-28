@@ -232,7 +232,7 @@ class GraphTask(BaseTask):
                     self.prompt.weigth_init(node_embedding,processed_dataset.edge_index.to(self.device), node_for_graph_labels, train_node_ids)
                     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)            
                 else:
-                    if self.task_type == 'LinkTask' and self.dataset_name in ['Cora','Citeseer','PubMed']:
+                    if self.task_type == 'LinkTask' and self.dataset_name in ['Cora','Citeseer','PubMed','Wisconsin','ogbn-arxiv']:
                         total_num_nodes = sum([data.num_nodes for data in train_dataset])
                         train_node_ids = torch.arange(0,total_num_nodes).squeeze().to(self.device)
                     else:

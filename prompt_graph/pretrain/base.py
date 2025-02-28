@@ -3,7 +3,7 @@ from prompt_graph.model import GAT, GCN, GCov, GIN, GraphSAGE, GraphTransformer
 from torch.optim import Adam
 
 class PreTrain(torch.nn.Module):
-    def __init__(self, gnn_type='TransformerConv', dataset_name = 'Cora', hid_dim = 128, gln = 2, preprocess_method = 'None', num_epoch=100, device : int = 0):
+    def __init__(self, gnn_type='TransformerConv', dataset_name = 'Cora', hid_dim = 128, gln = 2, preprocess_method = 'None', num_epoch=100, device : int = 1):
         super().__init__()
         self.device = torch.device('cuda:' + str(device) if torch.cuda.is_available() else 'cpu')
         self.dataset_name = dataset_name
@@ -15,23 +15,47 @@ class PreTrain(torch.nn.Module):
         self.learning_rate = 0.001
         self.weight_decay = 0.00005
         
-    def initialize_gnn(self, input_dim, out_dim):
+
+    def initialize_gnn(self, input_dim, hid_dim):
         if self.gnn_type == 'GAT':
-                self.gnn = GAT(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+                self.gnn = GAT(input_dim = input_dim, hid_dim = hid_dim, num_layer = self.num_layer)
         elif self.gnn_type == 'GCN':
-                self.gnn = GCN(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+                self.gnn = GCN(input_dim = input_dim, hid_dim = hid_dim, num_layer = self.num_layer)
         elif self.gnn_type == 'GraphSAGE':
-                self.gnn = GraphSAGE(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+                self.gnn = GraphSAGE(input_dim = input_dim, hid_dim = hid_dim, num_layer = self.num_layer)
         elif self.gnn_type == 'GIN':
-                self.gnn = GIN(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+                self.gnn = GIN(input_dim = input_dim, hid_dim = hid_dim, num_layer = self.num_layer)
         elif self.gnn_type == 'GCov':
-                self.gnn = GCov(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+                self.gnn = GCov(input_dim = input_dim, hid_dim = hid_dim, num_layer = self.num_layer)
         elif self.gnn_type == 'GraphTransformer':
-                self.gnn = GraphTransformer(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+                self.gnn = GraphTransformer(input_dim = input_dim, hid_dim = hid_dim, num_layer = self.num_layer)
         else:
                 raise ValueError(f"Unsupported GNN type: {self.gnn_type}")
+        print(self.gnn)
         self.gnn.to(self.device)
         self.optimizer = Adam(self.gnn.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+
+
+
+#     def initialize_gnn(self, input_dim, out_dim):
+#         if self.gnn_type == 'GAT':
+#                 self.gnn = GAT(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+#         elif self.gnn_type == 'GCN':
+#                 self.gnn = GCN(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+#         elif self.gnn_type == 'GraphSAGE':
+#                 self.gnn = GraphSAGE(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+#         elif self.gnn_type == 'GIN':
+#                 self.gnn = GIN(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+#         elif self.gnn_type == 'GCov':
+#                 self.gnn = GCov(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+#         elif self.gnn_type == 'GraphTransformer':
+#                 self.gnn = GraphTransformer(input_dim = input_dim, out_dim = out_dim, num_layer = self.num_layer)
+#         else:
+#                 raise ValueError(f"Unsupported GNN type: {self.gnn_type}")
+#         self.gnn.to(self.device)
+#         self.optimizer = Adam(self.gnn.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+
+
 
 
         

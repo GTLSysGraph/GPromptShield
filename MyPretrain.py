@@ -13,7 +13,6 @@ for seed in args.seed:
     if args.task == 'Edgepred_Gprompt':
         pt = Edgepred_Gprompt(dataset_name = args.dataset_name, gnn_type = args.gnn_type, hid_dim = args.hid_dim, gln = args.num_layer, num_epoch=args.epochs, device=args.device)
 
-
     if args.task == 'NodeMultiGprompt':
         # epoch 在内部自己设置
         nonlinearity = 'prelu'

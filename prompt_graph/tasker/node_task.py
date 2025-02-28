@@ -138,7 +138,6 @@ class NodeTask(BaseTask):
       def load_data(self):
             self.data, self.dataset = load4node_shot_index(self.dataset_name, preprocess_method = 
             self.preprocess_method, shot_num = self.shot_num, run_split= self.run_split)
-   
 
             if self.prompt_type == 'MultiGprompt':
                   self.process_multigprompt_data(self.data)
@@ -624,10 +623,20 @@ class NodeTask(BaseTask):
 
             # for all-in-one and Gprompt we use k-hop subgraph
             if self.prompt_type in ['All-in-one', 'Gprompt', 'GPF', 'GPF-plus','RobustPrompt-I']:
+
+                  # print(len(self.train_dataset))
+                  # print(len(self.val_dataset))
+                  # print(len(self.test_dataset))
+
                   train_loader = DataLoader(self.train_dataset, batch_size=100, shuffle=True)
                   test_loader = DataLoader(self.test_dataset, batch_size=100, shuffle=False)
-                  val_loader = DataLoader(self.val_dataset, batch_size=512, shuffle=False)
+                  val_loader = DataLoader(self.val_dataset, batch_size=100, shuffle=False)
                   print("prepare induce graph data is finished!")
+
+                  # print(len(train_loader))
+                  # print(len(val_loader))
+                  # print(len(test_loader))
+                  # quit()
 
 
             print("run {}".format(self.prompt_type))
@@ -691,7 +700,15 @@ class NodeTask(BaseTask):
                               break
                   print("Epoch {:03d} |  Time(s) {:.4f} | {} Loss {:.4f}  ".format(epoch, time.time() - t0, self.prompt_type, loss))
 
-            
+            # print(self.data)
+            # print('change eva data!')
+            # from data_pyg.data_pyg import get_dataset
+            # import os.path as osp
+            # path      = osp.expanduser('/home/songsh/MyPrompt/data_pyg/Attack_data')
+            # self.data = get_dataset(path, 'Attack-' + self.dataset_name, 'random', '0.5')[0]
+            # self.data = self.data.to(self.device) 
+            # print(self.data)
+
             
             import math
             if not math.isnan(loss):
