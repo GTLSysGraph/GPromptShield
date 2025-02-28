@@ -1,7 +1,7 @@
 from prompt_graph.pretrain import GraphCL,Edgepred_Gprompt, GraphPrePrompt, NodePrePrompt, GraphMAE
 from prompt_graph.utils import seed_everything
 from prompt_graph.utils import mkdir, get_args
-
+# 2025/3/1 3:40
 args = get_args()
 for seed in args.seed:
     seed_everything(seed)
