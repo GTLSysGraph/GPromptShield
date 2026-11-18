@@ -9,6 +9,11 @@
   <a href="https://www.ccf.org.cn/Academic_Evaluation/By_category/"><img src="./docs/gpromptshield/ccf-a.png" height="26" alt="CCF Rank A (2026 edition)"></a>
   <a href="https://portal.core.edu.au/conf-ranks/2273/"><img src="./docs/gpromptshield/core-a-star.png" height="26" alt="CORE Rank A*"></a>
   <br>
+  <a href="https://www.python.org/"><img src="./docs/gpromptshield/python.png" height="24" alt="Python"></a>
+  <a href="https://pytorch.org/"><img src="./docs/gpromptshield/pytorch.png" height="24" alt="PyTorch"></a>
+  <a href="https://pytorch-geometric.readthedocs.io/en/stable/"><img src="./docs/gpromptshield/pyg.png" height="24" alt="PyTorch Geometric"></a>
+  <a href="https://lightning.ai/docs/torchmetrics/stable/"><img src="./docs/gpromptshield/torchmetrics.png" height="24" alt="TorchMetrics"></a>
+  <br>
   <a href="https://openreview.net/forum?id=yCN4yI6zhH"><strong>OpenReview</strong></a> ·
   <a href="https://proceedings.iclr.cc/paper_files/paper/2025/file/473aadf077f8464dbae7e9600d9be6c4-Paper-Conference.pdf"><strong>Paper PDF</strong></a> ·
   <a href="#method"><strong>Method</strong></a> ·
@@ -18,7 +23,9 @@
 
 <p align="center"><img src="./docs/gpromptshield/pixel-divider.png" width="430" height="13" alt=""></p>
 
-## Overview
+<a name="overview"></a>
+
+## 🧭 Overview
 
 Graph prompt tuning adapts a frozen, pre-trained graph neural network (GNN) to a downstream task using only a small set of trainable prompt parameters. If the graph structure is perturbed during downstream tuning, even a small labeled set on a familiar graph can produce a misleading prompt. The paper shows this effect on Cora and Citeseer, where established prompt methods lose accuracy when tuned on perturbed graphs.
 
@@ -30,7 +37,9 @@ Graph prompt tuning adapts a frozen, pre-trained graph neural network (GNN) to a
   <em>Figure 3 from the paper · Baseline graph prompts on clean and perturbed graphs.</em>
 </p>
 
-## Method
+<a name="method"></a>
+
+## 🛡️ Method
 
 | Defense | Where it acts | How it works |
 | --- | --- | --- |
@@ -43,7 +52,9 @@ Graph prompt tuning adapts a frozen, pre-trained graph neural network (GNN) to a
   <em>Figure 4 from the paper · Robust prompt optimization for the hybrid multi-defense prompt.</em>
 </p>
 
-## Experiments
+<a name="experiments"></a>
+
+## 📊 Experiments
 
 The main evaluation covers **5-shot and 10-shot node classification** on **Cora, Citeseer, and Cora-ML**, with clean, non-adaptive, and adaptive evaluation settings. It tests both **GraphCL** and **GraphMAE** pre-training and compares against established graph prompting baselines. The appendix includes additional node classification results and exploratory results on link prediction and graph classification.
 
@@ -68,7 +79,9 @@ The ablation study measures the effects of removing individual feature prompts a
 
 </details>
 
-## Repository guide
+<a name="repository-guide"></a>
+
+## 🗂️ Repository guide
 
 | Path | Contents |
 | --- | --- |
@@ -78,7 +91,9 @@ The ablation study measures the effects of removing individual feature prompts a
 | [`prompt_graph/pretrain/`](./prompt_graph/pretrain) | GraphCL, GraphMAE, and other pre-training methods. |
 | [`prompt_graph/evaluation/`](./prompt_graph/evaluation) | Downstream evaluation routines. |
 
-## Citation
+<a name="citation"></a>
+
+## 📚 Citation
 
 ```bibtex
 @inproceedings{song2025gpromptshield,
