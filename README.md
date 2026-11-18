@@ -1,11 +1,13 @@
 <h1 align="center">
-  <img src="./docs/gpromptshield/graph-shield.gif" width="820" alt="GPromptShield — Elevating Resilience in Graph Prompt Tuning Against Adversarial Attacks">
+  <img src="./docs/gpromptshield/graph-shield.gif" width="680" alt="GPromptShield — Elevating Resilience in Graph Prompt Tuning Against Adversarial Attacks">
   <br>
-  <img src="./docs/gpromptshield/pixel-divider.png" width="600" height="31" alt="">
+  <img src="./docs/gpromptshield/pixel-divider.png" width="500" height="26" alt="">
 </h1>
 
 <p align="center">
-  <strong>Shuhan Song</strong> · <strong>Ping Li</strong> · <strong>Ming Dun</strong> · <strong>Maolei Huang</strong> · <strong>Huawei Cao</strong> · <strong>Xiaochun Ye</strong>
+  <strong>Shuhan Song</strong><sup>1,2</sup> · <strong>Ping Li</strong><sup>1,2</sup> · <strong>Ming Dun</strong><sup>1</sup> · <strong>Maolei Huang</strong><sup>4</sup> · <strong>Huawei Cao</strong><sup>1,3,*</sup> · <strong>Xiaochun Ye</strong><sup>1</sup>
+  <br>
+  <sup>1</sup> State Key Lab of Processors, Institute of Computing Technology, Chinese Academy of Sciences · <sup>2</sup> University of Chinese Academy of Sciences · <sup>3</sup> Zhongguancun Laboratory · <sup>4</sup> Fliggy, Alibaba Group · <sup>*</sup> Corresponding author
   <br>
   <a href="https://proceedings.iclr.cc/paper_files/paper/2025/hash/473aadf077f8464dbae7e9600d9be6c4-Abstract-Conference.html"><img src="./docs/gpromptshield/iclr-2025.png" height="26" alt="Published at the International Conference on Learning Representations (ICLR 2025)"></a>
   <a href="https://www.ccf.org.cn/Academic_Evaluation/By_category/"><img src="./docs/gpromptshield/ccf-a.png" height="26" alt="CCF Rank A (2026 edition)"></a>
