@@ -1,6 +1,6 @@
-<h1 align="center">🛡️ GPromptShield</h1>
-
-<h3 align="center">Elevating Resilience in Graph Prompt Tuning Against Adversarial Attacks</h3>
+<h1 align="center">
+  <img src="./docs/gpromptshield/graph-shield.gif" width="1000" alt="GPromptShield — Elevating Resilience in Graph Prompt Tuning Against Adversarial Attacks">
+</h1>
 
 <p align="center">
   <a href="https://proceedings.iclr.cc/paper_files/paper/2025/hash/473aadf077f8464dbae7e9600d9be6c4-Abstract-Conference.html">
