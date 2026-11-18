@@ -3,20 +3,12 @@
 </h1>
 
 <p align="center">
-  <a href="https://proceedings.iclr.cc/paper_files/paper/2025/hash/473aadf077f8464dbae7e9600d9be6c4-Abstract-Conference.html">
-    <img src="./docs/gpromptshield/iclr-2025.png" width="270" alt="ICLR 2025 Conference Paper">
-  </a>
-</p>
-
-<p align="center">
   <strong>Shuhan Song</strong> · <strong>Ping Li</strong> · <strong>Ming Dun</strong> · <strong>Maolei Huang</strong> · <strong>Huawei Cao</strong> · <strong>Xiaochun Ye</strong>
-</p>
-
-<p align="center">
-  Published at the <strong>International Conference on Learning Representations (ICLR 2025)</strong>.
-</p>
-
-<p align="center">
+  <br>
+  <a href="https://proceedings.iclr.cc/paper_files/paper/2025/hash/473aadf077f8464dbae7e9600d9be6c4-Abstract-Conference.html"><img src="./docs/gpromptshield/iclr-2025.png" height="26" alt="Published at the International Conference on Learning Representations (ICLR 2025)"></a>
+  <a href="https://www.ccf.org.cn/Academic_Evaluation/By_category/"><img src="./docs/gpromptshield/ccf-a.png" height="26" alt="CCF Rank A (2026 edition)"></a>
+  <a href="https://portal.core.edu.au/conf-ranks/2273/"><img src="./docs/gpromptshield/core-a-star.png" height="26" alt="CORE Rank A*"></a>
+  <br>
   <a href="https://openreview.net/forum?id=yCN4yI6zhH"><strong>OpenReview</strong></a> ·
   <a href="https://proceedings.iclr.cc/paper_files/paper/2025/file/473aadf077f8464dbae7e9600d9be6c4-Paper-Conference.pdf"><strong>Paper PDF</strong></a> ·
   <a href="#method"><strong>Method</strong></a> ·
@@ -24,7 +16,7 @@
   <a href="#citation"><strong>BibTeX</strong></a>
 </p>
 
----
+<p align="center"><img src="./docs/gpromptshield/pixel-divider.png" width="430" height="13" alt=""></p>
 
 ## Overview
 
