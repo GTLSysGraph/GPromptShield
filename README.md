@@ -1,5 +1,7 @@
 <h1 align="center">
-  <img src="./docs/gpromptshield/graph-shield.gif" width="1000" alt="GPromptShield — Elevating Resilience in Graph Prompt Tuning Against Adversarial Attacks">
+  <img src="./docs/gpromptshield/graph-shield.gif" width="820" alt="GPromptShield — Elevating Resilience in Graph Prompt Tuning Against Adversarial Attacks">
+  <br>
+  <img src="./docs/gpromptshield/pixel-divider.png" width="600" height="31" alt="">
 </h1>
 
 <p align="center">
@@ -14,14 +16,12 @@
   <a href="https://pytorch-geometric.readthedocs.io/en/stable/"><img src="./docs/gpromptshield/pyg.png" height="24" alt="PyTorch Geometric"></a>
   <a href="https://lightning.ai/docs/torchmetrics/stable/"><img src="./docs/gpromptshield/torchmetrics.png" height="24" alt="TorchMetrics"></a>
   <br>
-  <a href="https://openreview.net/forum?id=yCN4yI6zhH"><strong>OpenReview</strong></a> ·
-  <a href="https://proceedings.iclr.cc/paper_files/paper/2025/file/473aadf077f8464dbae7e9600d9be6c4-Paper-Conference.pdf"><strong>Paper PDF</strong></a> ·
-  <a href="#method"><strong>Method</strong></a> ·
-  <a href="#experiments"><strong>Experiments</strong></a> ·
-  <a href="#citation"><strong>BibTeX</strong></a>
+  <a href="https://openreview.net/forum?id=yCN4yI6zhH"><strong>🔗 OpenReview</strong></a> ·
+  <a href="https://proceedings.iclr.cc/paper_files/paper/2025/file/473aadf077f8464dbae7e9600d9be6c4-Paper-Conference.pdf"><strong>📄 Paper PDF</strong></a> ·
+  <a href="#method"><strong>🛡️ Method</strong></a> ·
+  <a href="#experiments"><strong>📊 Experiments</strong></a> ·
+  <a href="#citation"><strong>📚 BibTeX</strong></a>
 </p>
-
-<p align="center"><img src="./docs/gpromptshield/pixel-divider.png" width="430" height="13" alt=""></p>
 
 <a name="overview"></a>
 
@@ -70,14 +70,11 @@ With **GraphMAE** in the 5-shot Cora setting under the **M-0.25** condition, IA-
 
 [![Table 2. Five-shot node classification results for adaptive evaluations on Cora-ML and Citeseer.](./docs/gpromptshield/table-02-adaptive.png)](./docs/gpromptshield/table-02-adaptive.png)
 
-<details>
-<summary><strong>Table 3 · MD-PT ablation study</strong></summary>
+### Table 3 · MD-PT ablation study
 
 The ablation study measures the effects of removing individual feature prompts and training constraints on Cora and Citeseer under 5-shot and 10-shot supervision.
 
 [![Table 3. Comparison of the full hybrid multi-defense prompt and six ablated variants.](./docs/gpromptshield/table-03-ablation.png)](./docs/gpromptshield/table-03-ablation.png)
-
-</details>
 
 <a name="repository-guide"></a>
 
